@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="1dp"
+    android:paddingLeft="1dp"
+    android:paddingRight="1dp"
+    android:paddingTop="1dp"
+    tools:context="com.mark.bluetoothdemo.MainActivity"
+    tools:layout_editor_absoluteX="0dp"
+    tools:layout_editor_absoluteY="73dp">
+
+
+    <EditText
+        android:id="@+id/etRequest"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:inputType="text"
+        android:maxLines="1"
+        android:text="@string/default_text"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <Button
+        android:id="@+id/btnConnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:onClick="onClickConnect"
+        android:text="@string/button_connect"
+        android:textAllCaps="false"
+        app:layout_constraintLeft_toLeftOf="@+id/etRequest"
+        app:layout_constraintRight_toLeftOf="@+id/guideline"
+        app:layout_constraintTop_toBottomOf="@+id/etRequest" />
+
+    <Button
+        android:id="@+id/btnDisconnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:enabled="false"
+        android:onClick="onClickDisconnect"
+        android:text="@string/button_disconnect"
+        android:textAllCaps="false"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline"
+        app:layout_constraintRight_toLeftOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@+id/etRequest" />
+
+    <Button
+        android:id="@+id/btnSend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:enabled="false"
+        android:onClick="onClickSend"
+        android:text="@string/button_send"
+        android:textAllCaps="false"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline3"
+        app:layout_constraintRight_toLeftOf="@+id/guideline4"
+        app:layout_constraintTop_toBottomOf="@+id/etRequest" />
+
+    <Button
+        android:id="@+id/btnClear"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:onClick="onClickClear"
+        android:text="@string/button_clear"
+        android:textAllCaps="false"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline4"
+        app:layout_constraintRight_toRightOf="@+id/etRequest"
+        app:layout_constraintTop_toBottomOf="@+id/etRequest" />
+
+    <TextView
+        android:id="@+id/tvTitleReadField"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/colorMainTextViewBackground"
+        android:text="@string/read_field"
+        android:textColor="@color/colorMainTextViewTitle"
+        app:layout_constraintLeft_toLeftOf="@+id/etRequest"
+        app:layout_constraintRight_toRightOf="@+id/etRequest"
+        app:layout_constraintTop_toTopOf="@+id/guidelineHorizontal" />
+
+    <ScrollView
+        android:id="@+id/scrollView_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="@+id/etRequest"
+        app:layout_constraintRight_toRightOf="@+id/etRequest"
+        app:layout_constraintTop_toBottomOf="@+id/tvTitleReadField">
+
+        <TextView
+            android:id="@+id/tvContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvTitleWrittenField"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/colorMainTextViewBackground"
+        android:text="@string/written_field"
+        android:textColor="@color/colorMainTextViewTitle"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView_Written"
+        app:layout_constraintLeft_toLeftOf="@+id/etRequest"
+        app:layout_constraintRight_toRightOf="@+id/etRequest"
+        app:layout_constraintTop_toBottomOf="@+id/btnConnect" />
+
+    <ScrollView
+        android:id="@+id/scrollView_Written"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="0dp"
+        app:layout_constraintBottom_toBottomOf="@+id/guidelineHorizontal"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintLeft_toLeftOf="@+id/etRequest"
+        app:layout_constraintRight_toRightOf="@+id/etRequest"
+        app:layout_constraintTop_toBottomOf="@+id/tvTitleWrittenField">
+
+        <TextView
+            android:id="@+id/tvWritten"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.24"
+        tools:layout_editor_absoluteX="92dp"
+        tools:layout_editor_absoluteY="0dp" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.5"
+        tools:layout_editor_absoluteX="191dp"
+        tools:layout_editor_absoluteY="0dp" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guideline4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.75"
+        tools:layout_editor_absoluteX="287dp"
+        tools:layout_editor_absoluteY="0dp" />
+
+    <android.support.constraint.Guideline
+        android:id="@+id/guidelineHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.41" />
+
+</android.support.constraint.ConstraintLayout>

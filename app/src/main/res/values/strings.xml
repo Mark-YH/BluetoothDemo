@@ -1,0 +1,21 @@
+<resources>
+    <!--Layout: main-->
+    <string name="app_name">Bluetooth Demo</string>
+    <string name="button_connect">Connect</string>
+    <string name="button_disconnect">Disconnect</string>
+    <string name="button_send">Send</string>
+    <string name="button_clear">Clear</string>
+    <string name="default_text">t</string>
+    <string name="written_field">Written message field</string>
+    <string name="read_field">Read message field</string>
+
+    <!--Layout: device_list-->
+    <string name="device_list_name">Select a device to connect</string>
+    <string name="button_scan">Scan</string>
+    <string name="paired_device">Paired device</string>
+    <string name="new_device">New device</string>
+
+    <!--DeviceListFragment-->
+    <string name="noPairedDevice">No paired devices</string>
+    <string name="noFoundDevice">No found devices</string>
+</resources>
