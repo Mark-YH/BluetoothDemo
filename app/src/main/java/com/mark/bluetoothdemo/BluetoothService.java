@@ -11,6 +11,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 
@@ -67,6 +68,7 @@ class BluetoothService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private final static int PACKET_LENGTH = 20; // 自訂封包的長度
 
         ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
@@ -91,31 +93,46 @@ class BluetoothService {
         }
 
         public void run() {
-            String retVal;
-            byte[] mmBuffer = new byte[1024];
-            int numBytes; // bytes returned from read()
-
             // Keep listening to the InputStream until an exception occurs.
             while (true) {
                 try {
-                    // Read from the InputStream.
-                    numBytes = mmInStream.read(mmBuffer);
-                    if (numBytes > 0) {
-                        retVal = new String(mmBuffer, "UTF-8");
-                        // Send the obtained bytes to the UI activity.
-                        Message readMsg = mHandler.obtainMessage(
-                                Constants.MESSAGE_READ, retVal);
-                        readMsg.sendToTarget();
-                        mmBuffer = new byte[1024]; // Clear buffer for next loop
+                    int numBytes = 0; // bytes returned from read()
+                    byte[] mmBuffer = new byte[PACKET_LENGTH];
+
+                    // 等到 input stream 內確定讀取到 PACKET_LENGTH bytes 後才跳出 while loop
+                    while (numBytes < PACKET_LENGTH) {
+                        numBytes = mmInStream.available();
                     }
+                    // 已確定 input stream 內有完整封包長度的封包, 可忽略 InputStream.read(byte[]) 的回傳值
+                    // 但是還不確定這個封包格式是否符合自訂的標準封包
+                    mmInStream.read(mmBuffer);
+
+                    // 自訂標準為 前 4 bytes = 'H', 'E', 'A', 'D' 作為 Header 來辨識
+                    // 因此先將 buffer 內前 4 bytes 讀出來
+                    byte[] header = new byte[4];
+                    ByteBuffer.wrap(mmBuffer, 0, 4).get(header, 0, 4);
+
+                    if (new String(header).equals("HEAD")) {
+                        // Packet is correct, so send to MainActivity
+                        Message readMsg = mHandler.obtainMessage(Constants.MESSAGE_READ, mmBuffer);
+                        readMsg.sendToTarget();
+                    } else {
+                        // 封包格式錯誤, 使用 InputStream.read() 來丟棄(drop) 1 byte
+                        mmInStream.read();
+                        Log.e(TAG, "PACKET IS WRONG!!!!!");
+                    }
+
+                    // for debug
+//                    if (numBytes > PACKET_LENGTH) {
+//                        Log.e(TAG, " ******\n numBytes > PACKET_LENGTH\n numBytes= " + String.valueOf(numBytes) + "\n *****");
+//                    }
+//                    Log.d(TAG, "numBytes:" + String.valueOf(numBytes));
+//                    for (byte item : mmBuffer) {
+//                        Log.d(TAG, "item:" + item);
+//                    }
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
                     break;
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Log.d(TAG, "InterruptedException", e);
                 }
             }
         }
@@ -152,7 +169,6 @@ class BluetoothService {
             }
         }
     }
-
 
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;

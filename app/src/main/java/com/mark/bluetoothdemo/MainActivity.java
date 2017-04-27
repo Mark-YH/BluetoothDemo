@@ -16,6 +16,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
  * Created on 2017/4/14
  * Connect to Arduino via Bluetooth demo
@@ -90,6 +93,10 @@ public class MainActivity extends AppCompatActivity {
         btnDisconnect.setEnabled(isConnected);
     }
 
+    private void turnOnLight() {
+        tvContent.append("天色昏暗");
+    }
+
     public void onClickConnect(View v) {
         doConnect();
     }
@@ -117,7 +124,23 @@ public class MainActivity extends AppCompatActivity {
             Context context = getApplicationContext();
             switch (msg.what) {
                 case Constants.MESSAGE_READ:
-                    tvContent.append((String) msg.obj);
+                    byte[] mmBuffer = (byte[]) msg.obj;
+                    int lightVal;
+                    float humidity, temperature, heatIndex;
+                    String contents;
+                    lightVal = ByteBuffer.wrap(mmBuffer, 4, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                    humidity = ByteBuffer.wrap(mmBuffer, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                    temperature = ByteBuffer.wrap(mmBuffer, 12, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                    heatIndex = ByteBuffer.wrap(mmBuffer, 16, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                    contents = ("光感測：" + lightVal + "\n" +
+                            "濕度：" + humidity + "\n" +
+                            "溫度：" + temperature + "\n" +
+                            "熱指數：" + heatIndex + "\n" +
+                            "---- ---- ---- ----\n");
+                    tvContent.append(contents);
+                    if (lightVal > 500) {
+                        turnOnLight();
+                    }
                     break;
 
                 case Constants.MESSAGE_WRITE: // display the message you sent
@@ -144,8 +167,7 @@ public class MainActivity extends AppCompatActivity {
                     // sock.connect() 連線失敗
                     setButtonEnable(false);
                     pbLoading.setVisibility(View.GONE);
-                    Toast.makeText(getApplicationContext(),
-                            "Could not connect to bluetooth device", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Could not connect to bluetooth device", Toast.LENGTH_SHORT).show();
                     break;
             } // end switch
         }// end handleMessage(msg)
