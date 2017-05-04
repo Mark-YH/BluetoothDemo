@@ -8,7 +8,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -44,7 +43,7 @@ import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
-    private TextView tvContent, tvWritten;
+    private TextView tvContent, tvWritten, tvLog;
     private Button btnConnect, btnDisconnect, btnSend;
     private EditText etRequest;
     private ProgressBar pbLoading;
@@ -67,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         pbLoading = (ProgressBar) findViewById(R.id.progressBar);
         tvContent = (TextView) findViewById(R.id.tvContent);
         tvWritten = (TextView) findViewById(R.id.tvWritten);
-        tvContent.setMovementMethod(new ScrollingMovementMethod());
+        tvLog = (TextView) findViewById(R.id.tvLog);
 
         mTtsService = new MyTextToSpeechService(MainActivity.this);
         locationService = new LocationService(MainActivity.this);
@@ -133,9 +132,10 @@ public class MainActivity extends AppCompatActivity {
     public void onClickClear(View v) {
         tvWritten.setText("");
         tvContent.setText("");
+        tvLog.setText("");
     }
 
-    public void onClickSTT(View v){
+    public void onClickSTT(View v) {
         speechToTextService.start();
     }
 
@@ -226,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case Constants.STT_ERROR:
-                    Toast.makeText(MainActivity.this, (String) msg.obj, Toast.LENGTH_SHORT).show();
+                    tvLog.append("STT ERR: " + msg.obj + "\n");
                     break;
                 case Constants.STT_ASK_LOCATION:
                     mTtsService.speak("目前位置是：" + locationService.getAddress());
