@@ -19,5 +19,11 @@ interface Constants {
     int REQUEST_ENABLE_BT = 20;
     int REQUEST_SELECT_DEVICE = 21;
 
+    // For Location
     int REQUEST_LOCATION = 31;
+
+    // For STT Service
+    int STT_ERROR = 41;
+    int STT_ASK_LOCATION = 42;
+    int STT_ASK_OBSTACLE = 43;
 }

@@ -1,17 +1,12 @@
 package com.mark.bluetoothdemo;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -23,15 +18,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
-
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Created on 2017/4/14
@@ -53,8 +41,7 @@ import java.util.Locale;
  */
 
 
-public class MainActivity extends AppCompatActivity
-        implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
     private TextView tvContent, tvWritten;
@@ -63,8 +50,8 @@ public class MainActivity extends AppCompatActivity
     private ProgressBar pbLoading;
     private BluetoothService btService;
     private MyTextToSpeechService mTtsService;
-    protected GoogleApiClient mGoogleApiClient;
-    protected Location mLastLocation;
+    private LocationService locationService;
+    private SpeechToTextService speechToTextService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,7 +70,8 @@ public class MainActivity extends AppCompatActivity
         tvContent.setMovementMethod(new ScrollingMovementMethod());
 
         mTtsService = new MyTextToSpeechService(MainActivity.this);
-        buildGoogleApiClient();
+        locationService = new LocationService(MainActivity.this);
+        speechToTextService = new SpeechToTextService(MainActivity.this, mSttHandler);
     }
 
     @Override
@@ -145,10 +133,13 @@ public class MainActivity extends AppCompatActivity
     public void onClickClear(View v) {
         tvWritten.setText("");
         tvContent.setText("");
-        getAddress();
     }
 
-    public void onClickLightSwitch(View v){
+    public void onClickSTT(View v){
+        speechToTextService.start();
+    }
+
+    public void onClickLightSwitch(View v) {
         isLightOff = !isLightOff;
     }
 
@@ -162,90 +153,14 @@ public class MainActivity extends AppCompatActivity
             if (grantResults.length == 1
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // We can now safely use the API we requested access to
-                mGoogleApiClient.disconnect();
-                mGoogleApiClient.connect();
+                locationService.reconnect();
+                Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
             } else {
                 mTtsService.speak("請同意應用程式存取位置資訊的權限");
+                Log.d(TAG, "Permission was denied or request was cancelled");
                 // Permission was denied or request was cancelled
             }
         }
-    }
-
-    public void getAddress() {
-        if (mLastLocation != null) {
-            Geocoder gc = new Geocoder(this, Locale.TRADITIONAL_CHINESE);
-            //自經緯度取得地址
-            List<Address> lstAddress;
-            try {
-                lstAddress = gc.getFromLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude(), 1);
-                String address = lstAddress.get(0).getAddressLine(0);
-                // 不需要郵遞區號及國家名稱
-                address = address.replace(lstAddress.get(0).getPostalCode(), "");
-                address = address.replace(lstAddress.get(0).getCountryName(), "");
-
-                mTtsService.speak("您目前位置是：" + address);
-                Log.d(TAG, address);
-            } catch (IOException e) {
-                Log.e(TAG, "gc.getFromLocation() exception", e);
-            }
-        }
-    }
-
-    /**
-     * Builds a GoogleApiClient. Uses the addApi() method to request the LocationServices API.
-     */
-    protected synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        mGoogleApiClient.connect();
-    }
-
-    /**
-     * Runs when a GoogleApiClient object successfully connects.
-     */
-    @Override // GoogleApiClient.ConnectionCallbacks
-    public void onConnected(Bundle bundle) {
-        // Provides a simple way of getting a device's location and is well suited for
-        // applications that do not require a fine-grained location and that do not need location
-        // updates. Gets the best and most recent location currently available, which may be null
-        // in rare cases when a location is not available.
-        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            // Check Permissions Now
-            Log.d(TAG, "Needs Permissions to access location");
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    Constants.REQUEST_LOCATION);
-            return;
-        }
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        Log.d(TAG, "Google API Client connected.");
-    }
-
-    @Override // GoogleApiClient.ConnectionCallbacks
-    public void onConnectionSuspended(int i) {
-        // The connection to Google Play services was lost for some reason. We call connect() to
-        // attempt to re-establish the connection.
-        Log.i(TAG, "Connection suspended");
-        mGoogleApiClient.connect();
-    }
-
-    @Override // GoogleApiClient.OnConnectionFailedListener
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        // Refer to the javadoc for ConnectionResult to see what error codes might be returned in
-        // onConnectionFailed.
-        Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + connectionResult.getErrorCode());
     }
 
     /**
@@ -272,7 +187,6 @@ public class MainActivity extends AppCompatActivity
                             "---- ---- ---- ----\n");
                     tvContent.append(contents);
                     if (lightVal > 500 && isLightOff) {
-                        // TODO: Arduino 端須感測大燈是否開啟, 並傳值過來. 否則只要昏暗就會一直提醒
                         turnOnLight();
                     }
                     break;
@@ -305,5 +219,22 @@ public class MainActivity extends AppCompatActivity
                     break;
             } // end switch
         }// end handleMessage(msg)
+    };
+
+    private Handler mSttHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Constants.STT_ERROR:
+                    Toast.makeText(MainActivity.this, (String) msg.obj, Toast.LENGTH_SHORT).show();
+                    break;
+                case Constants.STT_ASK_LOCATION:
+                    mTtsService.speak("目前位置是：" + locationService.getAddress());
+                    break;
+                case Constants.STT_ASK_OBSTACLE:
+                    // TODO: Open data of obstacle
+                    break;
+            }
+        }
     };
 }

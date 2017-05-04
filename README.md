@@ -125,7 +125,7 @@ Android 官方建議使用 Google Location Services API 來取得位置資訊，
 > The Google Location Services API, part of Google Play services, is the preferred way to add location-awareness to your app. It offers a simpler API, higher accuracy, low-power geofencing, and more. If you are currently using the android.location API, you are strongly encouraged to switch to the Google Location Services API as soon as possible. 
 
  要使用 Google Location Services API 必須先完成下列前置動作 (setup)
- 步驟擷取自：https://developers.google.com/android/guides/setup
+ 步驟擷取自：[https://developers.google.com/android/guides/setup](https://developers.google.com/android/guides/setup)
  
 ##### Step1. Set Up Google Play Services
 > To develop an app using the Google Play services APIs, you need to set up your project with the Google Play services SDK.
