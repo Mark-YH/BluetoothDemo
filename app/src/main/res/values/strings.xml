@@ -8,6 +8,7 @@
     <string name="default_text">t</string>
     <string name="written_field">Written message field</string>
     <string name="read_field">Read message field</string>
+    <string name="light_switch">Light SW</string>
 
     <!--Layout: device_list-->
     <string name="device_list_name">Select a device to connect</string>

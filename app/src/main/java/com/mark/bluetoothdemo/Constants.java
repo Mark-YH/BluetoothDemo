@@ -18,4 +18,6 @@ interface Constants {
     // For activity request code
     int REQUEST_ENABLE_BT = 20;
     int REQUEST_SELECT_DEVICE = 21;
+
+    int REQUEST_LOCATION = 31;
 }

@@ -2,15 +2,16 @@
 
 Demo how to communicate with Arduino via Bluetooth.
 
-> 自訂一個封包共 20 bytes
-> * 4 bytes = Header
-> * 4 bytes = 光感測值 (int)
-> * 4 bytes = 濕度感測值 (float)
-> * 4 bytes = 溫度感測值 (float)
-> * 4 bytes = 熱指數值 (float)
+Arduino
+---
+ 自訂一個封包共 20 bytes
+* 4 bytes = Header
+* 4 bytes = 光感測值 (int)
+* 4 bytes = 濕度感測值 (float)
+* 4 bytes = 溫度感測值 (float)
+* 4 bytes = 熱指數值 (float)
 
 #### Here is Arduino code:
-
 
 ```c++
 #include "DHT.h"
@@ -113,3 +114,46 @@ void readSensor() {
   sendFloat(hic); // Heat index
 }
 ```
+
+
+Android
+---
+
+**Google Location Services API**
+
+Android 官方建議使用 Google Location Services API 來取得位置資訊，下列擷取自官方文件：
+> The Google Location Services API, part of Google Play services, is the preferred way to add location-awareness to your app. It offers a simpler API, higher accuracy, low-power geofencing, and more. If you are currently using the android.location API, you are strongly encouraged to switch to the Google Location Services API as soon as possible. 
+
+ 要使用 Google Location Services API 必須先完成下列前置動作 (setup)
+ 步驟擷取自：https://developers.google.com/android/guides/setup
+ 
+##### Step1. Set Up Google Play Services
+> To develop an app using the Google Play services APIs, you need to set up your project with the Google Play services SDK.
+>
+> If you haven't installed the Google Play services SDK yet, get it now:
+>
+> 1. Start Android Studio.
+> 2. On the Tools menu, click Android > SDK Manager.
+> 3. Update the Android Studio SDK Manager: click SDK Tools, expand Support Repository, select Google Repository, and then click OK.
+
+##### Step2. Add Google Play Services to Your Project
+      
+使用 Google Play Services 需要編輯 build.gradle(Module: app) 如下： 
+ 
+ ```
+ apply plugin: 'com.android.application'
+      ...
+  
+      dependencies {
+          compile 'com.google.android.gms:play-services:10.2.1'
+      }
+ ```
+
+此專案目前只需要 Location 的 API，因此指定 location 即可，如下：
+
+`compile 'com.google.android.gms:play-services-location:10.2.1'`
+
+此外，官方特別註明：
+
+> Be sure you update this version number each time Google Play services is updated.
+
