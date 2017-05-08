@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 
 /**
  * Created on 2017/4/14
@@ -30,11 +31,6 @@ import java.nio.ByteOrder;
  * To learn how to set up the client library with the latest version,
  * see Setup in the Google Play services guide.
  * link: https://developers.google.com/android/guides/setup
- * <p>
- * <p>
- * <p>
- * <p>
- * If you are currently using the android.location API, you are strongly encouraged to switch to the Google Location Services API as soon as possible.
  *
  * @author Mark Hsu
  */
@@ -51,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private MyTextToSpeechService mTtsService;
     private LocationService locationService;
     private SpeechToTextService speechToTextService;
+    private OpenDataService openDataService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
         mTtsService = new MyTextToSpeechService(MainActivity.this);
         locationService = new LocationService(MainActivity.this);
         speechToTextService = new SpeechToTextService(MainActivity.this, mSttHandler);
+        openDataService = new OpenDataService(locationService, mSttHandler);
     }
 
     @Override
@@ -232,7 +230,13 @@ public class MainActivity extends AppCompatActivity {
                     mTtsService.speak("目前位置是：" + locationService.getAddress());
                     break;
                 case Constants.STT_ASK_OBSTACLE:
-                    // TODO: Open data of obstacle
+                    openDataService.start();
+                    break;
+                case Constants.STT_RESULT_OBSTACLE:
+                    ArrayList<String> obstacle = (ArrayList<String>) msg.obj;
+                    for (String item : obstacle) {
+                        tvLog.append(item);
+                    }
                     break;
             }
         }

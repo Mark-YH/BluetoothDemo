@@ -1,6 +1,7 @@
 # BluetoothDemo
 
-Demo how to communicate with Arduino via Bluetooth.
+Intelligent helmet project
+
 
 Arduino
 ---

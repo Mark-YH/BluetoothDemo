@@ -26,4 +26,5 @@ interface Constants {
     int STT_ERROR = 41;
     int STT_ASK_LOCATION = 42;
     int STT_ASK_OBSTACLE = 43;
+    int STT_RESULT_OBSTACLE = 44;
 }

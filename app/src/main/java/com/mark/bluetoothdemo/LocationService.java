@@ -114,6 +114,10 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
         return "發生錯誤";
     }
 
+    Location getLocation(){
+        return mLastLocation;
+    }
+
     void reconnect() {
         mGoogleApiClient.disconnect();
         mGoogleApiClient.connect();
