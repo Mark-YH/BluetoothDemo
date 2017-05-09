@@ -101,7 +101,7 @@ public class DeviceListFragment extends Activity {
         if (mBluetoothAdapter == null) {
             // Device does not support bluetooth
             Toast.makeText(this, "Device does not support bluetooth", Toast.LENGTH_SHORT).show();
-
+            finish();
         } else if (!mBluetoothAdapter.isEnabled()) {
             // Bluetooth disabled
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
