@@ -110,8 +110,10 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
             } catch (IOException e) {
                 Log.e(TAG, "gc.getFromLocation() exception", e);
             }
+        }else {
+            buildGoogleApiClient();
         }
-        return "發生錯誤";
+        return "發生錯誤"; // 說明確認權限後重試
     }
 
     Location getLocation(){
