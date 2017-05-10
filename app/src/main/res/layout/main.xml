@@ -41,7 +41,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="onClickSTT"
-        android:text="STT"
+        android:text="@string/button_STT"
         app:layout_constraintRight_toLeftOf="@id/swLight"
         app:layout_constraintTop_toTopOf="parent" />
 

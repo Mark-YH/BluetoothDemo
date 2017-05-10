@@ -10,6 +10,7 @@
     <string name="read_field">Read message field</string>
     <string name="log_field">Log message field</string>
     <string name="light_switch">Light SW</string>
+    <string name="button_STT">STT</string>
 
     <!--Layout: device_list-->
     <string name="device_list_name">Select a device to connect</string>
