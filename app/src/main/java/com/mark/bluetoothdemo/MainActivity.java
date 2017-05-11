@@ -16,6 +16,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,7 +41,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
-    private TextView tvContent, tvWritten, tvLog;
+    private TextView tvDhtSensor, tvWritten, tvLog;
     private Button btnConnect, btnDisconnect, btnSend;
     private EditText etRequest;
     private ProgressBar pbLoading;
@@ -62,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         btnSend = (Button) findViewById(R.id.btnSend);
         etRequest = (EditText) findViewById(R.id.etRequest);
         pbLoading = (ProgressBar) findViewById(R.id.progressBar);
-        tvContent = (TextView) findViewById(R.id.tvContent);
+        tvDhtSensor = (TextView) findViewById(R.id.tvDhtSensor);
         tvWritten = (TextView) findViewById(R.id.tvWritten);
         tvLog = (TextView) findViewById(R.id.tvLog);
 
@@ -115,8 +116,12 @@ public class MainActivity extends AppCompatActivity {
         btnDisconnect.setEnabled(isConnected);
     }
 
-    private void turnOnLight() {
-        mTtsService.speak("天色昏暗，請開啟大燈");
+    private void autoScrollDown(){
+        ScrollView writtenScrollView = (ScrollView)findViewById(R.id.scrollView_Written);
+        ScrollView logScrollView = (ScrollView)findViewById(R.id.scrollView_log);
+
+        logScrollView.fullScroll(ScrollView.FOCUS_DOWN);
+        writtenScrollView.fullScroll(ScrollView.FOCUS_DOWN);
     }
 
     public void onClickConnect(View v) {
@@ -134,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickClear(View v) {
         tvWritten.setText("");
-        tvContent.setText("");
+        tvDhtSensor.setText("");
         tvLog.setText("");
     }
 
@@ -217,14 +222,15 @@ public class MainActivity extends AppCompatActivity {
                     humidity = ByteBuffer.wrap(mmBuffer, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     temperature = ByteBuffer.wrap(mmBuffer, 12, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     heatIndex = ByteBuffer.wrap(mmBuffer, 16, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                    String strHeatIndex = String.valueOf(heatIndex);
+                    strHeatIndex = strHeatIndex.substring(0, strHeatIndex.indexOf(".") + 2);
                     contents = ("光感測：" + lightVal + "\n" +
                             "濕度：" + humidity + "\n" +
                             "溫度：" + temperature + "\n" +
-                            "熱指數：" + heatIndex + "\n" +
-                            "---- ---- ---- ----\n");
-                    tvContent.append(contents);
+                            "熱指數：" + strHeatIndex + "\n");
+                    tvDhtSensor.setText(contents);
                     if (lightVal > 500 && isLightOff) {
-                        turnOnLight();
+                        mTtsService.speak("天色昏暗，請開啟大燈");
                     }
                     break;
 
@@ -232,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
                     byte[] bytes = (byte[]) msg.obj;
                     String sentMsg = new String(bytes);
                     tvWritten.append("Written message: " + sentMsg + "\n");
+                    autoScrollDown();
                     break;
 
                 case Constants.MESSAGE_TOAST:
@@ -264,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
             switch (msg.what) {
                 case Constants.STT_ERROR:
                     tvLog.append("STT ERR: " + msg.obj + "\n");
+                    autoScrollDown();
                     break;
                 case Constants.STT_ASK_LOCATION:
                     if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -285,9 +293,14 @@ public class MainActivity extends AppCompatActivity {
                     for (String item : obstacle) {
                         tvLog.append(item);
                     }
+                    autoScrollDown();
                     break;
                 case Constants.LOCATION_SERVICE_ERROR:
                     mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
+                    break;
+                case Constants.STT_RESULT_RECOGNITION:
+                    tvWritten.append("STT result: " + msg.obj + "\n");
+                    autoScrollDown();
                     break;
             }
         }

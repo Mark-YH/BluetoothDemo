@@ -144,8 +144,7 @@ class SpeechToTextService {
                     break;
             }
             Log.e(TAG, "Error message: " + message);
-            Message msg = mHandler.obtainMessage(Constants.STT_ERROR, message);
-            msg.sendToTarget();
+            mHandler.obtainMessage(Constants.STT_ERROR, message).sendToTarget();
         }
 
         @Override
@@ -154,6 +153,7 @@ class SpeechToTextService {
 
             ArrayList data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (data != null) {
+                mHandler.obtainMessage(Constants.STT_RESULT_RECOGNITION, data.get(0).toString()).sendToTarget();
                 for (int i = 0; i < data.size(); i++) {
                     Log.d(TAG, "data.get(" + i + "): " + data.get(i));
                     switch (data.get(i).toString()) {
