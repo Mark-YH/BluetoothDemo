@@ -30,18 +30,32 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
     private static final String TAG = "LocationService";
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
-    private Context context;
+    private Context mContext;
 
     LocationService(Context context) {
-        this.context = context;
+        this.mContext = context;
         buildGoogleApiClient();
+    }
+
+    private boolean checkPermission() {
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Needs Permissions to access location");
+            ActivityCompat.requestPermissions((Activity) mContext,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    Constants.REQUEST_LOCATION_PERMISSION);
+            return false;
+        }
+        return true;
     }
 
     /**
      * Builds a GoogleApiClient. Uses the addApi() method to request the LocationServices API.
      */
-    private synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(context)
+    synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(mContext)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
@@ -54,29 +68,10 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
      */
     @Override // GoogleApiClient.ConnectionCallbacks
     public void onConnected(Bundle bundle) {
-        // Provides a simple way of getting a device's location and is well suited for
-        // applications that do not require a fine-grained location and that do not need location
-        // updates. Gets the best and most recent location currently available, which may be null
-        // in rare cases when a location is not available.
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            // Check Permissions Now
-            Log.d(TAG, "Needs Permissions to access location");
-            ActivityCompat.requestPermissions((Activity) context,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    Constants.REQUEST_LOCATION);
-            return;
+        if (checkPermission()) {
+            mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            Log.d(TAG, "Google API Client connected.");
         }
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        Log.d(TAG, "Google API Client connected.");
     }
 
     @Override // GoogleApiClient.ConnectionCallbacks
@@ -96,7 +91,7 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
 
     String getAddress() {
         if (mLastLocation != null) {
-            Geocoder gc = new Geocoder(context, Locale.TRADITIONAL_CHINESE);
+            Geocoder gc = new Geocoder(mContext, Locale.TRADITIONAL_CHINESE);
             //自經緯度取得地址
             List<Address> lstAddress;
             try {
@@ -110,18 +105,12 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
             } catch (IOException e) {
                 Log.e(TAG, "gc.getFromLocation() exception", e);
             }
-        }else {
-            buildGoogleApiClient();
         }
-        return "發生錯誤"; // 說明確認權限後重試
+        Log.d(TAG, "mLastLocation: " + String.valueOf(mLastLocation == null));
+        return "發生錯誤，請確認是否已開啟權限存取位置資訊"; // 說明確認權限後重試
     }
 
-    Location getLocation(){
+    Location getLocation() {
         return mLastLocation;
-    }
-
-    void reconnect() {
-        mGoogleApiClient.disconnect();
-        mGoogleApiClient.connect();
     }
 }

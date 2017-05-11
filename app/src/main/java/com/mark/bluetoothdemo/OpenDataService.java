@@ -30,8 +30,9 @@ class OpenDataService {
     private Handler mHandler;
 
     OpenDataService(LocationService locationService, Handler handler) {
-        mLocationService = locationService;
         mHandler = handler;
+        mLocationService = locationService;
+        mHandler.sendEmptyMessage(Constants.LOCATION_SERVICE_ERROR);
     }
 
     void start() {
@@ -114,8 +115,14 @@ class OpenDataService {
             try {
                 x1 = Double.valueOf(jsonObject.getString("x1"));
                 y1 = Double.valueOf(jsonObject.getString("y1"));
-                x2 = mLocationService.getLocation().getLongitude();
-                y2 = mLocationService.getLocation().getLatitude();
+                try {
+                    x2 = mLocationService.getLocation().getLongitude();
+                    y2 = mLocationService.getLocation().getLatitude();
+                } catch (NullPointerException e) {
+                    mHandler.sendEmptyMessage(Constants.LOCATION_SERVICE_ERROR);
+                    Log.e(TAG, "mLocationService.getLocation() is null", e);
+                    return;
+                }
                 final int LIMIT_DISTANCE = 300_000; // 1 km = 1000
                 double distance = getDistance(x1, y1, x2, y2);
                 String areaNm = jsonObject.getString("areaNm");

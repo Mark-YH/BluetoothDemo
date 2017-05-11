@@ -24,10 +24,16 @@ class SpeechToTextService {
     private static final String TAG = "SpeechToTextService";
     private SpeechRecognizer speechRecognizer;
     private Handler mHandler;
+    private Context mContext;
 
     SpeechToTextService(Context context, Handler handler) {
+        mContext = context;
         mHandler = handler;
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+        initialize();
+    }
+
+    void initialize() {
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(mContext);
         speechRecognizer.setRecognitionListener(new STTServiceListener());
     }
 
@@ -39,7 +45,7 @@ class SpeechToTextService {
         speechRecognizer.startListening(intent);
     }
 
-    void stop() {
+    private void stop() {
         speechRecognizer.stopListening();
         speechRecognizer.cancel();
     }

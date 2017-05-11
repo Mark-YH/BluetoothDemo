@@ -1,5 +1,6 @@
 package com.mark.bluetoothdemo;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -7,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -34,7 +36,6 @@ import java.util.ArrayList;
  *
  * @author Mark Hsu
  */
-
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
@@ -114,6 +115,10 @@ public class MainActivity extends AppCompatActivity {
         btnDisconnect.setEnabled(isConnected);
     }
 
+    private void turnOnLight() {
+        mTtsService.speak("天色昏暗，請開啟大燈");
+    }
+
     public void onClickConnect(View v) {
         doConnect();
     }
@@ -133,31 +138,65 @@ public class MainActivity extends AppCompatActivity {
         tvLog.setText("");
     }
 
-    public void onClickSTT(View v) {
-        speechToTextService.start();
+    public void onClickSTT(View v) { //TODO: earphone button control >>> http://stackoverflow.com/questions/6287116/android-registering-a-headset-button-click-with-broadcastreceiver
+        if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
+            speechToTextService.start();
+        }
     }
 
     public void onClickLightSwitch(View v) {
         isLightOff = !isLightOff;
     }
 
-    private void turnOnLight() {
-        mTtsService.speak("天色昏暗，請開啟大燈");
+    /**
+     * @param requestCode Constant to verify on result (onRequestPermissionsResult())
+     * @param permission  Manifest.permission.WHAT_PERMISSION_YOU_NEED
+     * @return true if application has the permission above
+     */
+    private boolean checkPermission(int requestCode, String permission) {
+        if (ActivityCompat.checkSelfPermission(MainActivity.this, permission)
+                != PackageManager.PERMISSION_GRANTED) {
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            // Check Permissions Now
+            Log.d(TAG, "request this permission: " + permission);
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{permission}, requestCode);
+            return false;
+        }
+        return true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == Constants.REQUEST_LOCATION) {
-            if (grantResults.length == 1
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // We can now safely use the API we requested access to
-                locationService.reconnect();
-                Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
-            } else {
-                mTtsService.speak("請同意應用程式存取位置資訊的權限");
-                Log.d(TAG, "Permission was denied or request was cancelled");
-                // Permission was denied or request was cancelled
-            }
+        switch (requestCode) {
+            case Constants.REQUEST_LOCATION_PERMISSION:
+                if (grantResults.length == 1
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // We can now safely use the API we requested access to
+                    locationService.buildGoogleApiClient();
+                    Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
+                } else {
+                    mTtsService.speak("請同意應用程式存取位置資訊的權限");
+                    Log.d(TAG, "Permission was denied or request was cancelled");
+                    // Permission was denied or request was cancelled
+                }
+                break;
+            case Constants.STT_REQUEST_PERMISSION:
+                if (grantResults.length == 1
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // We can now safely use the API we requested access to
+                    speechToTextService.initialize();
+                    Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
+                } else {
+                    mTtsService.speak("請同意應用程式存取麥克風的權限");
+                    Log.d(TAG, "Permission was denied or request was cancelled");
+                }
+                break;
         }
     }
 
@@ -227,16 +266,28 @@ public class MainActivity extends AppCompatActivity {
                     tvLog.append("STT ERR: " + msg.obj + "\n");
                     break;
                 case Constants.STT_ASK_LOCATION:
-                    mTtsService.speak("目前位置是：" + locationService.getAddress());
+                    if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
+                            && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                        mTtsService.speak("目前位置是：" + locationService.getAddress());
+                    }
                     break;
                 case Constants.STT_ASK_OBSTACLE:
-                    openDataService.start();
+                    if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
+                            && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                        openDataService.start();
+                    }
                     break;
                 case Constants.STT_RESULT_OBSTACLE:
+                    @SuppressWarnings("unchecked")
                     ArrayList<String> obstacle = (ArrayList<String>) msg.obj;
                     for (String item : obstacle) {
                         tvLog.append(item);
                     }
+                    break;
+                case Constants.LOCATION_SERVICE_ERROR:
+                    mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
                     break;
             }
         }
