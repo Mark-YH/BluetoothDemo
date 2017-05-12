@@ -30,5 +30,5 @@ interface Constants {
     int STT_ASK_OBSTACLE = 42;
     int STT_RESULT_OBSTACLE = 43;
     int STT_REQUEST_PERMISSION = 44;
-    int STT_RESULT_RECOGNITION =45;
+    int STT_RESULT_RECOGNITION = 45;
 }

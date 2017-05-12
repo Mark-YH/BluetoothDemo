@@ -36,7 +36,7 @@ class MyTextToSpeechService {
                         // but not for the specified country and variant.
 
                         // The TTS engine has been successfully initialized.
-                        Log.d(TAG,"The TTS engine has been successfully initialized.");
+                        Log.d(TAG, "The TTS engine has been successfully initialized.");
                     }
                 } else {
                     // Initialization failed.
