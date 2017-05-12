@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -43,11 +42,6 @@ class SpeechToTextService {
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         speechRecognizer.startListening(intent);
-    }
-
-    private void stop() {
-        speechRecognizer.stopListening();
-        speechRecognizer.cancel();
     }
 
     private class STTServiceListener implements RecognitionListener {
@@ -109,6 +103,7 @@ class SpeechToTextService {
         @Override
         public void onError(int error) {
             Log.e(TAG, "onError: " + error);
+            speechRecognizer.cancel();
             String message;
             switch (error) {
                 case SpeechRecognizer.ERROR_AUDIO:
@@ -127,18 +122,17 @@ class SpeechToTextService {
                     message = "Network timeout";
                     break;
                 case SpeechRecognizer.ERROR_SERVER:
-                    message = "error from server";
+                    message = "Error from server";
                     break;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "RecognitionService busy";
-                    stop();
+                    message = "Recognition service busy";
                     break;
                 case SpeechRecognizer.ERROR_NO_MATCH:
-                    start();
-                    return; // Don't send message to handler, just restart STT service
+                    message = "Text no matched";
+                    break;
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    start();
-                    return; // Don't send message to handler, just restart STT service
+                    message = "Speech timeout";
+                    break;
                 default:
                     message = "Unknown error";
                     break;
@@ -153,7 +147,7 @@ class SpeechToTextService {
 
             ArrayList data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (data != null) {
-                mHandler.obtainMessage(Constants.STT_RESULT_RECOGNITION, data.get(0).toString()).sendToTarget();
+                mHandler.obtainMessage(Constants.STT_RESULT_RECOGNITION, data.toString()).sendToTarget();
                 for (int i = 0; i < data.size(); i++) {
                     Log.d(TAG, "data.get(" + i + "): " + data.get(i));
                     switch (data.get(i).toString()) {

@@ -116,9 +116,9 @@ public class MainActivity extends AppCompatActivity {
         btnDisconnect.setEnabled(isConnected);
     }
 
-    private void autoScrollDown(){
-        ScrollView writtenScrollView = (ScrollView)findViewById(R.id.scrollView_Written);
-        ScrollView logScrollView = (ScrollView)findViewById(R.id.scrollView_log);
+    private void autoScrollDown() {
+        ScrollView writtenScrollView = (ScrollView) findViewById(R.id.scrollView_Written);
+        ScrollView logScrollView = (ScrollView) findViewById(R.id.scrollView_log);
 
         logScrollView.fullScroll(ScrollView.FOCUS_DOWN);
         writtenScrollView.fullScroll(ScrollView.FOCUS_DOWN);
@@ -270,8 +270,7 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case Constants.STT_ERROR:
-                    tvLog.append("STT ERR: " + msg.obj + "\n");
-                    autoScrollDown();
+                    tvLog.append("STT ERR: " + msg.obj + " Please try again.\n");
                     break;
                 case Constants.STT_ASK_LOCATION:
                     if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -293,16 +292,15 @@ public class MainActivity extends AppCompatActivity {
                     for (String item : obstacle) {
                         tvLog.append(item);
                     }
-                    autoScrollDown();
                     break;
                 case Constants.LOCATION_SERVICE_ERROR:
                     mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
                     break;
                 case Constants.STT_RESULT_RECOGNITION:
                     tvWritten.append("STT result: " + msg.obj + "\n");
-                    autoScrollDown();
                     break;
             }
+            autoScrollDown();
         }
     };
 }
