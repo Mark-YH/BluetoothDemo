@@ -8,10 +8,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -25,8 +27,10 @@ import java.util.Locale;
 
 class OpenDataService {
     private static final String TAG = "OpenDataService";
+    private static final int ALLOWED_LIMIT = 24 * 60 * 60 * 1000; // 允許回報的時間(millisecond)
+    private static final int LIMIT_DISTANCE = 500_000; // 允許回報的距離(meter)
     private LocationService mLocationService;
-    private ArrayList<String> obstacle;
+    private ArrayList<Obstacle> obstacles;
     private Handler mHandler;
 
     OpenDataService(LocationService locationService, Handler handler) {
@@ -36,8 +40,114 @@ class OpenDataService {
     }
 
     void start() {
-        obstacle = new ArrayList<>();
+        obstacles = new ArrayList<>();
         new RequestThread().start();
+    }
+
+    private class RequestThread extends Thread {
+
+        @Override
+        public void run() {
+            String jsonData = executeGet("http://od.moi.gov.tw/data/api/pbs");
+            if (jsonData != null) {
+                try {
+                    JSONObject jsonObj = new JSONObject(jsonData);
+                    JSONArray jsonAry = new JSONArray(jsonObj.getString("result"));
+
+                    // Get current time and date.
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault());
+                    String[] currentDateTime = sdf.format(new Date()).split("_");
+                    String today = currentDateTime[0]; // yyyy-MM-dd
+                    String now = currentDateTime[1]; // HH:mm:ss
+
+                    for (int i = 0; i < jsonAry.length(); i++) {
+                        String happenDate = jsonAry.getJSONObject(i).getString("happendate");
+                        String happenTime = jsonAry.getJSONObject(i).getString("happentime");
+                        long diff = diffTime(now, happenTime);
+                        if (happenDate.equals(today) && diff < ALLOWED_LIMIT && diff != -1) {
+                            mFilter(jsonAry.getJSONObject(i));
+                            Log.d(TAG, "diff in minutes: " + diff / 60 / 1000);
+                        }
+                    }
+                    Log.d(TAG, "result counts: " + obstacles.size());
+                    mHandler.obtainMessage(Constants.STT_RESULT_OBSTACLE, obstacles.size(), -1, obstacles).sendToTarget();
+                } catch (JSONException e) {
+                    Log.e(TAG, "JSON Exception:", e);
+                }
+            } else {
+                this.start();
+            }
+        }
+
+        long diffTime(String now, String before) {
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            try {
+                return sdf.parse(now).getTime() - sdf.parse(before).getTime();
+            } catch (ParseException e) {
+                Log.e(TAG, "Parse Exception", e);
+            }
+            return -1;
+        }
+
+        /**
+         * @param road happened road
+         * @return true if road don't contain any custom String
+         */
+        boolean roadFilter(String road) {
+            String[] highway = {"高速", "快速", "國道"};
+            if (road.equals("")) {
+                return false;
+            }
+            for (String s : highway) {
+                if (road.contains(s)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        void mFilter(JSONObject jsonObject) {
+            double x1, y1, x2, y2;
+            try {
+                x1 = Double.valueOf(jsonObject.getString("x1"));
+                y1 = Double.valueOf(jsonObject.getString("y1"));
+                try {
+                    x2 = mLocationService.getLocation().getLongitude();
+                    y2 = mLocationService.getLocation().getLatitude();
+                } catch (NullPointerException e) {
+                    mHandler.sendEmptyMessage(Constants.LOCATION_SERVICE_ERROR);
+                    Log.e(TAG, "mLocationService.getLocation() is null", e);
+                    return;
+                }
+
+                double distance = getDistance(x1, y1, x2, y2);
+
+                String areaNm = jsonObject.getString("areaNm");
+                String road = jsonObject.getString("road");
+                String type = jsonObject.getString("roadtype");
+
+                if (distance < LIMIT_DISTANCE &&
+                        roadFilter(areaNm) &&
+                        roadFilter(road) &&
+                        !type.contains("其他")) {
+
+                    obstacles.add(new Obstacle(road, type, jsonObject.getString("happentime"),
+                            jsonObject.getString("comment"), distance / 1000));
+
+                    // for debug
+                    String s = ("方向:" + jsonObject.getString("direction") + "\n" + // usually empty
+                            "道路名稱:" + jsonObject.getString("road") + "\n" +
+                            "路況類別:" + jsonObject.getString("roadtype") + "\n" +
+                            "發生日期:" + jsonObject.getString("happendate") + "\n" +
+                            "發生時間:" + jsonObject.getString("happentime") + "\n" +
+                            "直線距離: " + distance / 1000 + "km\n" +
+                            "狀況: " + jsonObject.getString("comment") + "\n");
+                    Log.d(TAG, s);
+                }
+            } catch (JSONException e) {
+                Log.e(TAG, "JSON Exception:", e);
+            }
+        }
     }
 
     private static String executeGet(String targetURL) {
@@ -69,88 +179,14 @@ class OpenDataService {
 
             return response.toString();
 
-        } catch (Exception e) {
-            Log.e(TAG, "Exception:", e);
+        } catch (IOException e) {
+            Log.e(TAG, "IO Exception:", e);
             return null;
         } finally {
             if (conn != null) {
                 conn.disconnect();
             }
         }
-    }
-
-    private class RequestThread extends Thread {
-
-        @Override
-        public void run() {
-
-            String jsonData = executeGet("http://od.moi.gov.tw/data/api/pbs");
-            if (jsonData != null) {
-                try {
-                    JSONObject jsonObj = new JSONObject(jsonData);
-                    JSONArray jsonAry = new JSONArray(jsonObj.getString("result"));
-                    for (int i = 0; i < jsonAry.length(); i++) {
-                        String happenDate = jsonAry.getJSONObject(i).getString("happendate");
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss", Locale.getDefault());
-                        String[] currentDateandTime = sdf.format(new Date()).split("_");
-                        String today = currentDateandTime[0];
-                        String time = currentDateandTime[1];
-                        if (happenDate.equals(today)) {
-                            //TODO time filter
-                            Log.d(TAG, "i = " + i + "\tTime = " + time);
-                            dataFilter(jsonAry.getJSONObject(i));
-                        }
-                    }
-                    mHandler.obtainMessage(Constants.STT_RESULT_OBSTACLE, obstacle).sendToTarget();
-                } catch (JSONException e) {
-                    Log.e(TAG, "JSON Exception:", e);
-                }
-            } else {
-                this.start();
-            }
-        }
-
-        void dataFilter(JSONObject jsonObject) {
-            double x1, y1, x2, y2;
-            try {
-                x1 = Double.valueOf(jsonObject.getString("x1"));
-                y1 = Double.valueOf(jsonObject.getString("y1"));
-                try {
-                    x2 = mLocationService.getLocation().getLongitude();
-                    y2 = mLocationService.getLocation().getLatitude();
-                } catch (NullPointerException e) {
-                    mHandler.sendEmptyMessage(Constants.LOCATION_SERVICE_ERROR);
-                    Log.e(TAG, "mLocationService.getLocation() is null", e);
-                    return;
-                }
-                final int LIMIT_DISTANCE = 300_000; // 1 km = 1000
-                double distance = getDistance(x1, y1, x2, y2);
-                String areaNm = jsonObject.getString("areaNm");
-                if (distance < LIMIT_DISTANCE &&
-                        !areaNm.contains("高速") &&
-                        !areaNm.contains("快速") &&
-                        !areaNm.contains("國道")) {
-                    String s = ("方向:" + jsonObject.getString("direction") + "\n" +
-                            "道路名稱:" + jsonObject.getString("road") + "\n" +
-                            "路況類別:" + jsonObject.getString("roadtype") + "\n" +
-                            "發生日期:" + jsonObject.getString("happendate") + "\n" +
-                            "發生時間:" + jsonObject.getString("happentime") + "\n" +
-                            "修改時間:" + jsonObject.getString("modDttm") + "\n" +
-                            "直線距離: " + distance / 1000 + "km\n" +
-                            "狀況: " + jsonObject.getString("comment") + "\n" +
-                            "------\n");
-                    Log.d(TAG, s);
-                    obstacle.add(s);
-                }
-                Log.d(TAG, "Distance: " + distance / 1000 + "km");
-            } catch (
-                    JSONException e)
-
-            {
-                e.printStackTrace();
-            }
-        }
-
     }
 
     private static double getDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -169,10 +205,9 @@ class OpenDataService {
         double lambda = L, lambdaP, iterLimit = 100;
         do {
             double sinLambda = Math.sin(lambda), cosLambda = Math.cos(lambda);
-            sinSigma = Math.sqrt((cosU2 * sinLambda)
-                    * (cosU2 * sinLambda)
-                    + (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda)
-                    * (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda)
+            sinSigma = Math.sqrt(
+                    (cosU2 * sinLambda) * (cosU2 * sinLambda) +
+                            (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) * (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda)
             );
             if (sinSigma == 0) {
                 return 0;
@@ -186,12 +221,12 @@ class OpenDataService {
 
             double C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha));
             lambdaP = lambda;
-            lambda = L + (1 - C) * f * sinAlpha
-                    * (sigma + C * sinSigma
-                    * (cos2SigmaM + C * cosSigma
-                    * (-1 + 2 * cos2SigmaM * cos2SigmaM)
-            )
-            );
+            lambda = L + (1 - C) * f * sinAlpha *
+                    (sigma + C * sinSigma *
+                            (cos2SigmaM + C * cosSigma *
+                                    (-1 + 2 * cos2SigmaM * cos2SigmaM)
+                            )
+                    );
 
         } while (Math.abs(lambda - lambdaP) > 1e-12 && --iterLimit > 0);
 

@@ -287,11 +287,21 @@ public class MainActivity extends AppCompatActivity {
                     }
                     break;
                 case Constants.STT_RESULT_OBSTACLE:
-                    @SuppressWarnings("unchecked")
-                    ArrayList<String> obstacle = (ArrayList<String>) msg.obj;
-                    for (String item : obstacle) {
-                        tvLog.append(item);
+                    if (msg.arg1 == 0) {
+                        tvLog.append("無事故發生\n");
+                        mTtsService.speak("無事故發生");
+                        break;
                     }
+                    @SuppressWarnings("unchecked")
+                    ArrayList<Obstacle> obstacles = (ArrayList<Obstacle>) msg.obj;
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < obstacles.size(); i++) {
+                        tvLog.append("[" + (i + 1) + "] ");
+                        tvLog.append("Speaking: " + obstacles.get(i).getSpeaking());
+                        tvLog.append("Non-speaking:\n" + obstacles.get(i).getDetail() + "--- --- ---\n");
+                        sb.append(obstacles.get(i).getSpeaking());
+                    }
+                    mTtsService.speak(sb.toString());
                     break;
                 case Constants.LOCATION_SERVICE_ERROR:
                     mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
