@@ -45,11 +45,11 @@ public class MainActivity extends AppCompatActivity {
     private Button btnConnect, btnDisconnect, btnSend;
     private EditText etRequest;
     private ProgressBar pbLoading;
-    private BluetoothService btService;
+    private BluetoothService mBtService;
     private MyTextToSpeechService mTtsService;
-    private LocationService locationService;
-    private SpeechToTextService speechToTextService;
-    private OpenDataService openDataService;
+    private LocationService mLocationService;
+    private SpeechToTextService mSttService;
+    private OpenDataService mOpenDataService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,9 +68,9 @@ public class MainActivity extends AppCompatActivity {
         tvLog = (TextView) findViewById(R.id.tvLog);
 
         mTtsService = new MyTextToSpeechService(MainActivity.this);
-        locationService = new LocationService(MainActivity.this);
-        speechToTextService = new SpeechToTextService(MainActivity.this, mSttHandler);
-        openDataService = new OpenDataService(locationService, mSttHandler);
+        mLocationService = new LocationService(MainActivity.this);
+        mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
+        mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
     }
 
     @Override
@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             switch (resultCode) {
                 case RESULT_OK:
                     Bundle bundle = data.getExtras();
-                    btService = new BluetoothService(mBtHandler, bundle.getString("address"));
+                    mBtService = new BluetoothService(mBtHandler, bundle.getString("address"));
                     pbLoading.setVisibility(View.VISIBLE);
                     break;
             }
@@ -129,12 +129,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSend(View v) {
-        btService.sendMessage(etRequest.getText().toString());
+        mBtService.sendMessage(etRequest.getText().toString());
     }
 
     public void onClickDisconnect(View v) {
         setButtonEnable(false);
-        btService.disconnect();
+        mBtService.disconnect();
     }
 
     public void onClickClear(View v) {
@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickSTT(View v) { //TODO: earphone button control >>> http://stackoverflow.com/questions/6287116/android-registering-a-headset-button-click-with-broadcastreceiver
         if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
-            speechToTextService.start();
+            mSttService.start();
         }
     }
 
@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length == 1
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // We can now safely use the API we requested access to
-                    locationService.buildGoogleApiClient();
+                    mLocationService.buildGoogleApiClient();
                     Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
                 } else {
                     mTtsService.speak("請同意應用程式存取位置資訊的權限");
@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 if (grantResults.length == 1
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // We can now safely use the API we requested access to
-                    speechToTextService.initialize();
+                    mSttService.initialize();
                     Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
                 } else {
                     mTtsService.speak("請同意應用程式存取麥克風的權限");
@@ -276,14 +276,14 @@ public class MainActivity extends AppCompatActivity {
                     if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
                             && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
                             Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                        mTtsService.speak("目前位置是：" + locationService.getAddress());
+                        mTtsService.speak("目前位置是：" + mLocationService.getAddress());
                     }
                     break;
                 case Constants.STT_ASK_OBSTACLE:
                     if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
                             && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
                             Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                        openDataService.start();
+                        mOpenDataService.start();
                     }
                     break;
                 case Constants.STT_RESULT_OBSTACLE:
