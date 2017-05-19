@@ -21,8 +21,8 @@ interface Constants {
     int REQUEST_SELECT_DEVICE = 21;
 
     // For Location
-    int REQUEST_LOCATION_PERMISSION = 31;
-    int LOCATION_SERVICE_ERROR = 32;
+    int REQUEST_LOCATION_PERMISSION = 30;
+    int LOCATION_SERVICE_ERROR = 31;
 
     // For STT Service
     int STT_ERROR = 40;
@@ -31,4 +31,7 @@ interface Constants {
     int STT_RESULT_OBSTACLE = 43;
     int STT_REQUEST_PERMISSION = 44;
     int STT_RESULT_RECOGNITION = 45;
+
+    // For builtin sensor
+    int SENSOR_GRAVITY_RESULT = 50;
 }

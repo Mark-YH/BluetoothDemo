@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -41,7 +42,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
-    private TextView tvDhtSensor, tvWritten, tvLog;
+    private TextView tvDhtSensor, tvWritten, tvLog, tvGSensor;
     private Button btnConnect, btnDisconnect, btnSend;
     private EditText etRequest;
     private ProgressBar pbLoading;
@@ -50,6 +51,9 @@ public class MainActivity extends AppCompatActivity {
     private LocationService mLocationService;
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
+    private GravitySensorService mGravitySensorService;
+
+    private static int MAX_SPEED = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,17 +70,22 @@ public class MainActivity extends AppCompatActivity {
         tvDhtSensor = (TextView) findViewById(R.id.tvDhtSensor);
         tvWritten = (TextView) findViewById(R.id.tvWritten);
         tvLog = (TextView) findViewById(R.id.tvLog);
+        tvGSensor = (TextView) findViewById(R.id.tvGravitySensor);
 
         mTtsService = new MyTextToSpeechService(MainActivity.this);
         mLocationService = new LocationService(MainActivity.this);
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
+
     }
 
     @Override
     protected void onDestroy() {
         if (mTtsService != null) {
             mTtsService.destroy();
+        }
+        if (mGravitySensorService != null) {
+            mGravitySensorService.cancel();
         }
         super.onDestroy();
     }
@@ -141,6 +150,8 @@ public class MainActivity extends AppCompatActivity {
         tvWritten.setText("");
         tvDhtSensor.setText("");
         tvLog.setText("");
+        tvGSensor.setText("");
+        MAX_SPEED = 0;
     }
 
     public void onClickSTT(View v) { //TODO: earphone button control >>> http://stackoverflow.com/questions/6287116/android-registering-a-headset-button-click-with-broadcastreceiver
@@ -149,8 +160,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static boolean isSwitchOn = false;
+
     public void onClickLightSwitch(View v) {
         isLightOff = !isLightOff;
+        isSwitchOn = !isSwitchOn;
+        if (isSwitchOn) {
+            mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
+        } else {
+            mGravitySensorService.cancel();
+        }
     }
 
     /**
@@ -224,13 +243,14 @@ public class MainActivity extends AppCompatActivity {
                     heatIndex = ByteBuffer.wrap(mmBuffer, 16, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     String strHeatIndex = String.valueOf(heatIndex);
                     strHeatIndex = strHeatIndex.substring(0, strHeatIndex.indexOf(".") + 2);
-                    contents = ("光感測：" + lightVal + "\n" +
+                    contents = ("光感測：" + lightVal + "\n"     /*+
                             "濕度：" + humidity + "\n" +
                             "溫度：" + temperature + "\n" +
-                            "熱指數：" + strHeatIndex + "\n");
+                            "熱指數：" + strHeatIndex + "\n"*/);
                     tvDhtSensor.setText(contents);
                     if (lightVal > 500 && isLightOff) {
                         mTtsService.speak("天色昏暗，請開啟大燈");
+                        tvLog.append("天色昏暗，請開啟大燈\n");
                     }
                     break;
 
@@ -276,7 +296,9 @@ public class MainActivity extends AppCompatActivity {
                     if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
                             && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
                             Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                        mTtsService.speak("目前位置是：" + mLocationService.getAddress());
+                        String speaking = "目前位置是：" + mLocationService.getAddress() + "\n";
+                        mTtsService.speak(speaking);
+                        tvLog.append(speaking);
                     }
                     break;
                 case Constants.STT_ASK_OBSTACLE:
@@ -311,6 +333,40 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
             autoScrollDown();
+        }
+    };
+
+    private Handler mGsHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Constants.SENSOR_GRAVITY_RESULT:
+                    String result;
+                    float gravity[] = (float[]) msg.obj;
+//                    int v = msg.arg1;
+//
+//                    if (v > MAX_SPEED) {
+//                        MAX_SPEED = v;
+//                        result = "Max speed = " + v;
+//                        tvDhtSensor.setText(result);
+//                    }
+
+                    result = //"vt= " + v + "\n" +
+                            "x= " + gravity[0] + "\n" +
+                                    "y= " + gravity[1] + "\n" +
+                                    "z= " + gravity[2];
+                    tvGSensor.setText(result);
+
+                    // for testing
+//                    result = "--- --- --- Gravity sensor --- --- ---\n" +
+//                            "x= " + gravity[0] + "\n" +
+//                            "y= " + gravity[1] + "\n" +
+//                            "z= " + gravity[2] + "\n";
+//                    tvLog.append(result);
+//                    autoScrollDown();
+                    // end testing
+                    break;
+            }
         }
     };
 }

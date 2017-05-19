@@ -180,12 +180,11 @@
                 android:textSize="16sp" />
 
             <TextView
-                android:id="@+id/tvBuiltinSensor"
+                android:id="@+id/tvGravitySensor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="4dp"
                 android:layout_marginStart="4dp"
-                android:text="hello2222"
                 android:textSize="16sp" />
         </LinearLayout>
     </ScrollView>
