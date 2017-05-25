@@ -5,21 +5,16 @@ Intelligent helmet project
 
 Arduino
 ---
- 自訂一個封包共 20 bytes
+ 自訂一個封包共 12 bytes
 * 4 bytes = Header
 * 4 bytes = 光感測值 (int)
-* 4 bytes = 濕度感測值 (float)
-* 4 bytes = 溫度感測值 (float)
-* 4 bytes = 熱指數值 (float)
+* 4 bytes = 瞬時開關狀態 (int)
 
 #### Here is Arduino code:
 
 ```c++
-#include "DHT.h"
-#define DHTPIN 2
-#define DHTTYPE DHT11
 #define LIGHT_SENSOR_ANALOG A0
-
+#define BUTTON_PIN 3
 /**
    char 佔 1 byte
    char c = {'a', 'b'} 佔 3 bytes, 第 3 個 byte 為 '\0'
@@ -27,8 +22,7 @@ Arduino
    int 佔 2 bytes
 */
 
-DHT dht(DHTPIN, DHTTYPE);
-int flag = 0;
+// int flag = 0;
 
 typedef union {
   float floatingPoint;
@@ -68,51 +62,29 @@ void sendInteger(int i) {
 }
 
 void sendFloat(float f){
-  binaryFloat fBin;
+   binaryFloat fBin;
   fBin.floatingPoint = f;
   Serial.write(fBin.binary, 4);
 }
 
 void setup() {
   Serial.begin(9600);
-  dht.begin();
+  pinMode(BUTTON_PIN, INPUT);
 }
 
 void loop()
-{
-  char c;
-  if (flag) {
-    char cc[] = {'H','E','A','D'}; // Header Start Check
-    Serial.write(cc,4);
-    readSensor();
-    delay(10);
-  }
-  if (Serial.available())
-  {
-    c = Serial.read();
-    if (c == 't') {
-      flag = 1;
-    } else if (c == 's') {
-      flag = 0;
-    }
-  }
+{   
+  char header[] = {'H','E','A','D'}; // Header Start Check
+  Serial.write(header,4);
+  readSensor();
+  delay(10);
 }
 
 void readSensor() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
   int lightVal = analogRead(LIGHT_SENSOR_ANALOG);
-
-  if (isnan(h) || isnan(t)) {
-    h = -1;
-    t = -1;
-  }
-  float hic = dht.computeHeatIndex(t, h, false);
-
   sendInteger(lightVal); // Light
-  sendFloat(h); // Humidity
-  sendFloat(t); // Temperature
-  sendFloat(hic); // Heat index
+  int state = digitalRead(BUTTON_PIN);
+  sendInteger(state);
 }
 ```
 

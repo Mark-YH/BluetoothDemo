@@ -68,7 +68,7 @@ class BluetoothService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
-        private final static int PACKET_LENGTH = 20; // 自訂封包的長度
+        private final static int PACKET_LENGTH = 12; // 自訂封包的長度
 
         ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;

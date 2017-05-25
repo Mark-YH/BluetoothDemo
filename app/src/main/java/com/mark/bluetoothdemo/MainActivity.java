@@ -43,8 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
     private TextView tvDhtSensor, tvWritten, tvLog, tvGSensor;
-    private Button btnConnect, btnDisconnect, btnSend;
-    private EditText etRequest;
+    private Button btnConnect, btnDisconnect;
     private ProgressBar pbLoading;
     private BluetoothService mBtService;
     private MyTextToSpeechService mTtsService;
@@ -52,8 +51,8 @@ public class MainActivity extends AppCompatActivity {
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
     private GravitySensorService mGravitySensorService;
-
-    private static int MAX_SPEED = 0;
+    /* TODO: 增加 switch 模擬油門 / 改為中文敘述 (主控台、語音辨識結果) / 受撞擊辨識
+     */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +63,6 @@ public class MainActivity extends AppCompatActivity {
 
         btnConnect = (Button) findViewById(R.id.btnConnect);
         btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
-        btnSend = (Button) findViewById(R.id.btnSend);
-        etRequest = (EditText) findViewById(R.id.etRequest);
         pbLoading = (ProgressBar) findViewById(R.id.progressBar);
         tvDhtSensor = (TextView) findViewById(R.id.tvDhtSensor);
         tvWritten = (TextView) findViewById(R.id.tvWritten);
@@ -121,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void setButtonEnable(boolean isConnected) {
         btnConnect.setEnabled(!isConnected);
-        btnSend.setEnabled(isConnected);
         btnDisconnect.setEnabled(isConnected);
     }
 
@@ -137,10 +133,6 @@ public class MainActivity extends AppCompatActivity {
         doConnect();
     }
 
-    public void onClickSend(View v) {
-        mBtService.sendMessage(etRequest.getText().toString());
-    }
-
     public void onClickDisconnect(View v) {
         setButtonEnable(false);
         mBtService.disconnect();
@@ -151,7 +143,6 @@ public class MainActivity extends AppCompatActivity {
         tvDhtSensor.setText("");
         tvLog.setText("");
         tvGSensor.setText("");
-        MAX_SPEED = 0;
     }
 
     public void onClickSTT(View v) { //TODO: earphone button control >>> http://stackoverflow.com/questions/6287116/android-registering-a-headset-button-click-with-broadcastreceiver
@@ -228,37 +219,32 @@ public class MainActivity extends AppCompatActivity {
      * Receive message that returned from BluetoothService object
      */
     private final Handler mBtHandler = new Handler() {
+        private long tempTime;
+        private long nowTime;
+        private static final int REMIND_DELAY = 5000; // millisecond
+
         @Override
         public void handleMessage(Message msg) {
             Context context = getApplicationContext();
             switch (msg.what) {
                 case Constants.MESSAGE_READ:
+                    nowTime = System.currentTimeMillis();
                     byte[] mmBuffer = (byte[]) msg.obj;
-                    int lightVal;
-                    float humidity, temperature, heatIndex;
+                    int lightVal, switchState;
                     String contents;
                     lightVal = ByteBuffer.wrap(mmBuffer, 4, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
-                    humidity = ByteBuffer.wrap(mmBuffer, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    temperature = ByteBuffer.wrap(mmBuffer, 12, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    heatIndex = ByteBuffer.wrap(mmBuffer, 16, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    String strHeatIndex = String.valueOf(heatIndex);
-                    strHeatIndex = strHeatIndex.substring(0, strHeatIndex.indexOf(".") + 2);
-                    contents = ("光感測：" + lightVal + "\n"     /*+
-                            "濕度：" + humidity + "\n" +
-                            "溫度：" + temperature + "\n" +
-                            "熱指數：" + strHeatIndex + "\n"*/);
+                    switchState = ByteBuffer.wrap(mmBuffer, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
+                    contents = ("光感測：" + lightVal + "\n" +
+                            "sw：" + switchState + "\n");
                     tvDhtSensor.setText(contents);
                     if (lightVal > 500 && isLightOff) {
-                        mTtsService.speak("天色昏暗，請開啟大燈");
-                        tvLog.append("天色昏暗，請開啟大燈\n");
+                        if ((nowTime - tempTime) > REMIND_DELAY) {
+                            Log.d(TAG, "(nowTime - tempTime) = " + (nowTime - tempTime));
+                            mTtsService.speak("天色昏暗，請開啟大燈");
+                            tvLog.append("天色昏暗，請開啟大燈\n");
+                            tempTime = nowTime;
+                        }
                     }
-                    break;
-
-                case Constants.MESSAGE_WRITE: // display the message you sent
-                    byte[] bytes = (byte[]) msg.obj;
-                    String sentMsg = new String(bytes);
-                    tvWritten.append("Written message: " + sentMsg + "\n");
-                    autoScrollDown();
                     break;
 
                 case Constants.MESSAGE_TOAST:
@@ -343,18 +329,9 @@ public class MainActivity extends AppCompatActivity {
                 case Constants.SENSOR_GRAVITY_RESULT:
                     String result;
                     float gravity[] = (float[]) msg.obj;
-//                    int v = msg.arg1;
-//
-//                    if (v > MAX_SPEED) {
-//                        MAX_SPEED = v;
-//                        result = "Max speed = " + v;
-//                        tvDhtSensor.setText(result);
-//                    }
-
-                    result = //"vt= " + v + "\n" +
-                            "x= " + gravity[0] + "\n" +
-                                    "y= " + gravity[1] + "\n" +
-                                    "z= " + gravity[2];
+                    result = "x= " + gravity[0] + "\n" +
+                            "y= " + gravity[1] + "\n" +
+                            "z= " + gravity[2];
                     tvGSensor.setText(result);
 
                     // for testing
@@ -364,7 +341,6 @@ public class MainActivity extends AppCompatActivity {
 //                            "z= " + gravity[2] + "\n";
 //                    tvLog.append(result);
 //                    autoScrollDown();
-                    // end testing
                     break;
             }
         }
