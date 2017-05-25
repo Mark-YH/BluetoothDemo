@@ -4,6 +4,7 @@ import android.content.Context;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 /**
@@ -49,10 +50,8 @@ class MyTextToSpeechService {
 
     void speak(String content) {
         // min API Level 15 只能使用此 method >>> speak(String text, int queueMode, HashMap<String, String> params)
-        if (!mTts.isSpeaking()) {
-            mTts.speak(content, TextToSpeech.QUEUE_FLUSH,  // Drop all pending entries in the playback queue.
-                    null);
-        }
+        mTts.speak(content, TextToSpeech.QUEUE_ADD,  // Drop all pending entries in the playback queue.
+                null);
     }
 
     void destroy() {
