@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--Layout: main-->
+    <string name="app_name">主控台</string>
+    <string name="button_connect">連線</string>
+    <string name="button_disconnect">中斷連線</string>
+    <string name="button_clear">清除</string>
+    <string name="button_STT">語音辨識</string>
+    <string name="light_switch">大燈開關(模擬)</string>
+    <string name="written_field">語音輸入</string>
+    <string name="read_field">感應器接收值</string>
+    <string name="log_field">語音輸出</string>
+
+    <!--Layout: device_list-->
+    <string name="device_list_name">選擇連線裝置</string>
+    <string name="button_scan">搜尋裝置</string>
+    <string name="paired_device">已配對裝置</string>
+    <string name="new_device">未配對裝置</string>
+
+    <!--DeviceListFragment-->
+    <string name="noPairedDevice">無已配對裝置</string>
+    <string name="noFoundDevice">沒有找到裝置</string>
+
+    <!--MainActivity toast-->
+    <string name="enable_bluetooth_failed">啟用藍芽失敗</string>
+    <string name="bluetooth_connect_failed">藍芽連線失敗</string>
+    <string name="bluetooth_connected">已連線</string>
+    <string name="bluetooth_disconnect">已中斷連線</string>
+
+    <!-- SpeechToTextService toast -->
+    <string name="stt_audio_error">麥克風無法收音</string>
+    <string name="stt_client_error">手機端發生錯誤</string>
+    <string name="stt_network_error">網路發生錯誤</string>
+    <string name="stt_network_timeout">網路連線逾時</string>
+    <string name="stt_no_matched">無法辨識</string>
+    <string name="stt_permission_error">權限錯誤</string>
+    <string name="stt_server_error">伺服器錯誤</string>
+    <string name="stt_service_busy">正在接收語音</string>
+    <string name="stt_speech_timeout">語音辨識逾時</string>
+    <string name="stt_unknown_error">未知錯誤</string>
+</resources>

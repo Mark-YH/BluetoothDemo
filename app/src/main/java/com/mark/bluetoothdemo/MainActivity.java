@@ -13,9 +13,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,6 +21,7 @@ import android.widget.Toast;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 /**
@@ -42,7 +41,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
-    private TextView tvDhtSensor, tvWritten, tvLog, tvGSensor;
+    private TextView tvLightSensor, tvInput, tvOutput, tvGSensor;
     private Button btnConnect, btnDisconnect;
     private ProgressBar pbLoading;
     private BluetoothService mBtService;
@@ -51,29 +50,25 @@ public class MainActivity extends AppCompatActivity {
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
     private GravitySensorService mGravitySensorService;
-    /* TODO: 增加 switch 模擬油門 / 改為中文敘述 (主控台、語音辨識結果) / 受撞擊辨識
-     */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        // Hide virtual keyboard when startup
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
         btnConnect = (Button) findViewById(R.id.btnConnect);
         btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
         pbLoading = (ProgressBar) findViewById(R.id.progressBar);
-        tvDhtSensor = (TextView) findViewById(R.id.tvDhtSensor);
-        tvWritten = (TextView) findViewById(R.id.tvWritten);
-        tvLog = (TextView) findViewById(R.id.tvLog);
+        tvInput = (TextView) findViewById(R.id.tvInput);
+        tvOutput = (TextView) findViewById(R.id.tvOutput);
+        tvLightSensor = (TextView) findViewById(R.id.tvLightSensor);
         tvGSensor = (TextView) findViewById(R.id.tvGravitySensor);
 
         mTtsService = new MyTextToSpeechService(MainActivity.this);
         mLocationService = new LocationService(MainActivity.this);
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
-
+        mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
     }
 
     @Override
@@ -89,18 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // receive result of intent
-        if (requestCode == Constants.REQUEST_ENABLE_BT) {
-            // 接收 "發出 enable bluetooth 的 intent" 後的 result
-            switch (resultCode) {
-                case RESULT_OK:
-                    doConnect();
-                    break;
-                case RESULT_CANCELED:
-                    Toast.makeText(this, "Enable Bluetooth failed", Toast.LENGTH_SHORT).show();
-                    break;
-            }
-        } else if (requestCode == Constants.REQUEST_SELECT_DEVICE) {
+        if (requestCode == Constants.REQUEST_SELECT_DEVICE) {
             switch (resultCode) {
                 case RESULT_OK:
                     Bundle bundle = data.getExtras();
@@ -112,8 +96,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doConnect() {
+        if (mBtService != null) { // 若藍芽耳機主動連線會導致連線中斷，因此須中斷重連
+            mBtService.disconnect();
+        }
         Intent scanIntent = new Intent(MainActivity.this, DeviceListFragment.class);
         startActivityForResult(scanIntent, Constants.REQUEST_SELECT_DEVICE);
+    }
+
+    private void askLocation() {
+        if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
+                && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
+                Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            String speaking = "目前位置是：" + mLocationService.getAddress() + "\n";
+            mTtsService.speak(speaking);
+            tvOutput.append(speaking);
+        }
+    }
+
+    private void askObstacle() {
+        if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
+                && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
+                Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            mOpenDataService.start();
+        }
     }
 
     private void setButtonEnable(boolean isConnected) {
@@ -122,8 +127,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void autoScrollDown() {
-        ScrollView writtenScrollView = (ScrollView) findViewById(R.id.scrollView_Written);
-        ScrollView logScrollView = (ScrollView) findViewById(R.id.scrollView_log);
+        ScrollView writtenScrollView = (ScrollView) findViewById(R.id.scrollView_input);
+        ScrollView logScrollView = (ScrollView) findViewById(R.id.scrollView_output);
 
         logScrollView.fullScroll(ScrollView.FOCUS_DOWN);
         writtenScrollView.fullScroll(ScrollView.FOCUS_DOWN);
@@ -139,9 +144,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickClear(View v) {
-        tvWritten.setText("");
-        tvDhtSensor.setText("");
-        tvLog.setText("");
+        tvInput.setText("");
+        tvLightSensor.setText("");
+        tvOutput.setText("");
         tvGSensor.setText("");
     }
 
@@ -151,16 +156,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static boolean isSwitchOn = false;
-
     public void onClickLightSwitch(View v) {
         isLightOff = !isLightOff;
-        isSwitchOn = !isSwitchOn;
-        if (isSwitchOn) {
-            mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
-        } else {
-            mGravitySensorService.cancel();
-        }
     }
 
     /**
@@ -219,8 +216,9 @@ public class MainActivity extends AppCompatActivity {
      * Receive message that returned from BluetoothService object
      */
     private final Handler mBtHandler = new Handler() {
-        private long tempTime;
-        private long nowTime;
+        private long lightRemindTime;
+        private long currentTime;
+        private long moveTime;
         private static final int REMIND_DELAY = 5000; // millisecond
 
         @Override
@@ -228,21 +226,35 @@ public class MainActivity extends AppCompatActivity {
             Context context = getApplicationContext();
             switch (msg.what) {
                 case Constants.MESSAGE_READ:
-                    nowTime = System.currentTimeMillis();
+                    currentTime = System.currentTimeMillis();
                     byte[] mmBuffer = (byte[]) msg.obj;
                     int lightVal, switchState;
-                    String contents;
+                    StringBuilder sb = new StringBuilder();
                     lightVal = ByteBuffer.wrap(mmBuffer, 4, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
                     switchState = ByteBuffer.wrap(mmBuffer, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
-                    contents = ("光感測：" + lightVal + "\n" +
-                            "sw：" + switchState + "\n");
-                    tvDhtSensor.setText(contents);
+
+                    sb.append("光感測：").append(lightVal).append("\n");
+                    if (switchState > 0) {
+                        sb.append("模擬油門：").append("移動中").append("\n");
+                        if (moveTime == 0) {
+                            moveTime = currentTime;
+                        }
+                    } else {
+                        sb.append("模擬油門：").append("停止").append("\n");
+                        if (currentTime - moveTime > REMIND_DELAY && moveTime > 0) {
+                            askLocation();
+                            askObstacle();
+                            moveTime = 0;
+                        }
+                    }
+                    tvLightSensor.setText(sb.toString());
+
                     if (lightVal > 500 && isLightOff) {
-                        if ((nowTime - tempTime) > REMIND_DELAY) {
-                            Log.d(TAG, "(nowTime - tempTime) = " + (nowTime - tempTime));
+                        if ((currentTime - lightRemindTime) > REMIND_DELAY) {
+                            Log.d(TAG, "(currentTime - lightRemindTime) = " + (currentTime - lightRemindTime));
                             mTtsService.speak("天色昏暗，請開啟大燈");
-                            tvLog.append("天色昏暗，請開啟大燈\n");
-                            tempTime = nowTime;
+                            tvOutput.append("天色昏暗，請開啟大燈\n");
+                            lightRemindTime = currentTime;
                         }
                     }
                     break;
@@ -258,14 +270,21 @@ public class MainActivity extends AppCompatActivity {
                     // sock.connect() 連線成功
                     setButtonEnable(true);
                     pbLoading.setVisibility(View.GONE);
-                    Toast.makeText(context, "Connected!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, getResources().getString(R.string.bluetooth_connected)
+                            , Toast.LENGTH_SHORT).show();
                     break;
 
                 case Constants.MESSAGE_CONNECT_ERR:
                     // sock.connect() 連線失敗
                     setButtonEnable(false);
                     pbLoading.setVisibility(View.GONE);
-                    Toast.makeText(context, "Could not connect to bluetooth device", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, getResources().getString(R.string.bluetooth_connect_failed)
+                            , Toast.LENGTH_SHORT).show();
+                    break;
+
+                case Constants.MESSAGE_DISCONNECTED:
+                    Toast.makeText(context, getResources().getString(R.string.bluetooth_disconnect)
+                            , Toast.LENGTH_SHORT).show();
                     break;
             } // end switch
         }// end handleMessage(msg)
@@ -276,38 +295,37 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case Constants.STT_ERROR:
-                    tvLog.append("STT ERR: " + msg.obj + " Please try again.\n");
+                    tvOutput.append(msg.obj + "\n");
                     break;
+
                 case Constants.STT_ASK_LOCATION:
-                    if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
-                            && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                        String speaking = "目前位置是：" + mLocationService.getAddress() + "\n";
-                        mTtsService.speak(speaking);
-                        tvLog.append(speaking);
-                    }
+                    askLocation();
                     break;
+
                 case Constants.STT_ASK_OBSTACLE:
-                    if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
-                            && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                        mOpenDataService.start();
-                    }
+                    askObstacle();
                     break;
+
                 case Constants.STT_RESULT_OBSTACLE:
                     if (msg.arg1 == 0) {
-                        tvLog.append("無事故發生\n");
-                        mTtsService.speak("無事故發生");
+                        // demo時模擬狀況
+                        tvOutput.append("第 1 筆: 在中山路110號有事故\n");
+                        tvOutput.append("第 2 筆: 在民族路155號有障礙\n");
+                        mTtsService.speak("在中山路110號有事故\n在民族路155號有障礙\n");
+
+                        // 正常情況
+//                        tvOutput.append("無事故發生\n");
+//                        mTtsService.speak("無事故發生");
                         break;
                     }
                     @SuppressWarnings("unchecked")
                     ArrayList<Obstacle> obstacles = (ArrayList<Obstacle>) msg.obj;
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < obstacles.size(); i++) {
-                        tvLog.append("[" + (i + 1) + "] ");
-                        tvLog.append("Speaking: " + obstacles.get(i).getSpeaking());
-                        tvLog.append("Non-speaking:\n" + obstacles.get(i).getDetail() + "--- --- ---\n");
+                        tvOutput.append("第 " + (i + 1) + "筆: ");
+                        tvOutput.append(obstacles.get(i).getSpeaking());
                         sb.append(obstacles.get(i).getSpeaking());
+                        Log.d(TAG, obstacles.get(i).getDetail());
                     }
                     mTtsService.speak(sb.toString());
                     break;
@@ -315,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
                     mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
                     break;
                 case Constants.STT_RESULT_RECOGNITION:
-                    tvWritten.append("STT result: " + msg.obj + "\n");
+                    tvInput.append("語音辨識結果: " + msg.obj + "\n");
                     break;
             }
             autoScrollDown();
@@ -329,9 +347,11 @@ public class MainActivity extends AppCompatActivity {
                 case Constants.SENSOR_GRAVITY_RESULT:
                     String result;
                     float gravity[] = (float[]) msg.obj;
-                    result = "x= " + gravity[0] + "\n" +
-                            "y= " + gravity[1] + "\n" +
-                            "z= " + gravity[2];
+                    DecimalFormat df = new DecimalFormat("#.###");
+                    df.setPositivePrefix(" ");
+                    result = "x= " + df.format(gravity[0]) + "\n" +
+                            "y= " + df.format(gravity[1]) + "\n" +
+                            "z= " + df.format(gravity[2]);
                     tvGSensor.setText(result);
 
                     // for testing
@@ -339,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
 //                            "x= " + gravity[0] + "\n" +
 //                            "y= " + gravity[1] + "\n" +
 //                            "z= " + gravity[2] + "\n";
-//                    tvLog.append(result);
+//                    tvOutput.append(result);
 //                    autoScrollDown();
                     break;
             }

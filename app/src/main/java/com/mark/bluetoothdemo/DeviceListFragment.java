@@ -89,7 +89,7 @@ public class DeviceListFragment extends Activity {
                     findPairedDevices();
                     break;
                 case RESULT_CANCELED:
-                    Toast.makeText(this, "Enable Bluetooth failed", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getResources().getString(R.string.enable_bluetooth_failed), Toast.LENGTH_SHORT).show();
                     finish();
                     break;
             }

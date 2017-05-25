@@ -30,7 +30,7 @@
         android:layout_marginTop="2dp"
         android:onClick="onClickSTT"
         android:text="@string/button_STT"
-        app:layout_constraintLeft_toLeftOf="@+id/guideline3"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline_vertical_middle"
         app:layout_constraintTop_toBottomOf="@+id/swLight" />
 
     <Button
@@ -42,7 +42,7 @@
         android:text="@string/button_connect"
         android:textAllCaps="false"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="@+id/guideline"
+        app:layout_constraintRight_toLeftOf="@+id/guideline_vertical_left"
         app:layout_constraintTop_toBottomOf="@+id/swLight" />
 
     <Button
@@ -54,8 +54,8 @@
         android:onClick="onClickDisconnect"
         android:text="@string/button_disconnect"
         android:textAllCaps="false"
-        app:layout_constraintLeft_toLeftOf="@+id/guideline"
-        app:layout_constraintRight_toLeftOf="@+id/guideline3"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline_vertical_left"
+        app:layout_constraintRight_toLeftOf="@+id/guideline_vertical_middle"
         app:layout_constraintTop_toBottomOf="@+id/swLight" />
 
     <Button
@@ -66,13 +66,13 @@
         android:onClick="onClickClear"
         android:text="@string/button_clear"
         android:textAllCaps="false"
-        app:layout_constraintLeft_toLeftOf="@+id/guideline4"
+        app:layout_constraintLeft_toLeftOf="@+id/guideline_vertical_right"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/swLight" />
 
     <!--Written Field-->
     <TextView
-        android:id="@+id/tvTitleWrittenField"
+        android:id="@+id/tvTitleInputField"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
@@ -83,13 +83,13 @@
         android:background="@color/colorMainTextViewBackground"
         android:text="@string/written_field"
         android:textColor="@color/colorMainTextViewTitle"
-        app:layout_constraintBottom_toTopOf="@+id/scrollView_Written"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView_input"
         app:layout_constraintLeft_toLeftOf="@+id/btnConnect"
         app:layout_constraintRight_toRightOf="@+id/btnClear"
         app:layout_constraintTop_toBottomOf="@+id/btnConnect" />
 
     <ScrollView
-        android:id="@+id/scrollView_Written"
+        android:id="@+id/scrollView_input"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginEnd="8dp"
@@ -97,14 +97,14 @@
         android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/guidelineHorizontal"
+        app:layout_constraintBottom_toTopOf="@+id/guideline_horizontal_top"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintLeft_toLeftOf="@+id/btnConnect"
         app:layout_constraintRight_toRightOf="@+id/btnClear"
-        app:layout_constraintTop_toBottomOf="@+id/tvTitleWrittenField">
+        app:layout_constraintTop_toBottomOf="@+id/tvTitleInputField">
 
         <TextView
-            android:id="@+id/tvWritten"
+            android:id="@+id/tvInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp" />
@@ -112,7 +112,7 @@
 
     <!--Read Field-->
     <TextView
-        android:id="@+id/tvTitleReadField"
+        android:id="@+id/tvTitleSensorField"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
@@ -125,21 +125,21 @@
         android:textColor="@color/colorMainTextViewTitle"
         app:layout_constraintLeft_toLeftOf="@+id/btnConnect"
         app:layout_constraintRight_toRightOf="@+id/btnClear"
-        app:layout_constraintTop_toTopOf="@+id/guidelineHorizontal" />
+        app:layout_constraintTop_toTopOf="@+id/guideline_horizontal_top" />
 
     <ScrollView
-        android:id="@+id/scrollView_content"
+        android:id="@+id/scrollView_sensor"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="4dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/guidelineHorizontal2"
+        android:layout_marginTop="4dp"
+        app:layout_constraintBottom_toTopOf="@+id/guideline_horizontal_bottom"
         app:layout_constraintLeft_toLeftOf="@+id/btnConnect"
         app:layout_constraintRight_toRightOf="@+id/btnClear"
-        app:layout_constraintTop_toBottomOf="@+id/tvTitleReadField">
+        app:layout_constraintTop_toBottomOf="@+id/tvTitleSensorField">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -147,8 +147,8 @@
             android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/tvDhtSensor"
-                android:layout_width="100dp"
+                android:id="@+id/tvLightSensor"
+                android:layout_width="150dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
                 android:layout_marginRight="4dp"
@@ -179,10 +179,10 @@
         android:textColor="@color/colorMainTextViewTitle"
         app:layout_constraintLeft_toLeftOf="@+id/btnConnect"
         app:layout_constraintRight_toRightOf="@+id/btnClear"
-        app:layout_constraintTop_toTopOf="@+id/guidelineHorizontal2" />
+        app:layout_constraintTop_toTopOf="@+id/guideline_horizontal_bottom" />
 
     <ScrollView
-        android:id="@+id/scrollView_log"
+        android:id="@+id/scrollView_output"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginEnd="8dp"
@@ -196,7 +196,7 @@
         app:layout_constraintTop_toBottomOf="@+id/tvTitleLogField">
 
         <TextView
-            android:id="@+id/tvLog"
+            android:id="@+id/tvOutput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp" />
@@ -215,7 +215,7 @@
 
     <!--Vertical Guideline-->
     <android.support.constraint.Guideline
-        android:id="@+id/guideline"
+        android:id="@+id/guideline_vertical_left"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -224,7 +224,7 @@
         tools:layout_editor_absoluteY="0dp" />
 
     <android.support.constraint.Guideline
-        android:id="@+id/guideline3"
+        android:id="@+id/guideline_vertical_middle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -233,7 +233,7 @@
         tools:layout_editor_absoluteY="0dp" />
 
     <android.support.constraint.Guideline
-        android:id="@+id/guideline4"
+        android:id="@+id/guideline_vertical_right"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -243,7 +243,7 @@
 
     <!--Horizontal Guideline-->
     <android.support.constraint.Guideline
-        android:id="@+id/guidelineHorizontal"
+        android:id="@+id/guideline_horizontal_top"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -252,12 +252,10 @@
         tools:layout_editor_absoluteY="189dp" />
 
     <android.support.constraint.Guideline
-        android:id="@+id/guidelineHorizontal2"
+        android:id="@+id/guideline_horizontal_bottom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.58"
-        tools:layout_editor_absoluteX="0dp"
-        tools:layout_editor_absoluteY="295dp" />
+        app:layout_constraintGuide_percent="0.54" />
 
 </android.support.constraint.ConstraintLayout>

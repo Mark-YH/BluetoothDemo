@@ -107,34 +107,34 @@ class SpeechToTextService {
             String message;
             switch (error) {
                 case SpeechRecognizer.ERROR_AUDIO:
-                    message = "Audio recording error";
+                    message = mContext.getResources().getString(R.string.stt_audio_error);
                     break;
                 case SpeechRecognizer.ERROR_CLIENT:
-                    message = "Client side error";
+                    message = mContext.getResources().getString(R.string.stt_client_error);
                     break;
                 case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    message = "Insufficient permissions";
+                    message = mContext.getResources().getString(R.string.stt_permission_error);
                     break;
                 case SpeechRecognizer.ERROR_NETWORK:
-                    message = "Network error";
+                    message = mContext.getResources().getString(R.string.stt_network_error);
                     break;
                 case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                    message = "Network timeout";
+                    message = mContext.getResources().getString(R.string.stt_network_timeout);
                     break;
                 case SpeechRecognizer.ERROR_SERVER:
-                    message = "Error from server";
+                    message = mContext.getResources().getString(R.string.stt_server_error);
                     break;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "Recognition service busy";
+                    message = mContext.getResources().getString(R.string.stt_service_busy);
                     break;
                 case SpeechRecognizer.ERROR_NO_MATCH:
-                    message = "Text no matched";
+                    message = mContext.getResources().getString(R.string.stt_no_matched);
                     break;
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    message = "Speech timeout";
+                    message = mContext.getResources().getString(R.string.stt_speech_timeout);
                     break;
                 default:
-                    message = "Unknown error";
+                    message = mContext.getResources().getString(R.string.stt_unknown_error);
                     break;
             }
             Log.e(TAG, "Error message: " + message);
@@ -157,8 +157,7 @@ class SpeechToTextService {
                             return;
 
                         case "施工":
-                        case "師公":
-                        case "施公":
+                        case "障礙":
                             mHandler.sendEmptyMessage(Constants.STT_ASK_OBSTACLE);
                             return;
                     }
