@@ -1,8 +1,10 @@
 package com.mark.bluetoothdemo;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.os.Bundle;
@@ -12,6 +14,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -69,6 +72,36 @@ public class MainActivity extends AppCompatActivity {
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
         mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
+
+        IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_BUTTON);//"android.intent.action.MEDIA_BUTTON"
+        MediaButtonIntentReceiver r = new MediaButtonIntentReceiver();
+        registerReceiver(r, filter);
+    }
+
+    public class MediaButtonIntentReceiver extends BroadcastReceiver {
+
+        public MediaButtonIntentReceiver() {
+            super();
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String intentAction = intent.getAction();
+            if (!Intent.ACTION_MEDIA_BUTTON.equals(intentAction)) {
+                return;
+            }
+            KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+            if (event == null) {
+                return;
+            }
+            int action = event.getAction();
+            if (action == KeyEvent.ACTION_DOWN) {
+                if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
+                    mSttService.start();
+                }
+            }
+            abortBroadcast();
+        }
     }
 
     @Override
@@ -150,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
         tvGSensor.setText("");
     }
 
-    public void onClickSTT(View v) { //TODO: earphone button control >>> http://stackoverflow.com/questions/6287116/android-registering-a-headset-button-click-with-broadcastreceiver
+    public void onClickSTT(View v) {
         if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
             mSttService.start();
         }
@@ -296,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
             switch (msg.what) {
                 case Constants.STT_ERROR:
                     tvOutput.append(msg.obj + "\n");
+                    mTtsService.speak((String) msg.obj);
                     break;
 
                 case Constants.STT_ASK_LOCATION:
