@@ -3,9 +3,11 @@ package com.mark.bluetoothdemo;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import java.io.IOException;
@@ -51,11 +53,7 @@ class BluetoothService {
             connectThread.cancel();
             connectThread = null;
         }
-        Message disconnectedMsg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
-        Bundle bundle = new Bundle();
-        bundle.putString("toast", "Disconnected!");
-        disconnectedMsg.setData(bundle);
-        disconnectedMsg.sendToTarget();
+        mHandler.sendEmptyMessage(Constants.MESSAGE_DISCONNECTED);
     }
 
     void sendMessage(String msg) {

@@ -15,6 +15,7 @@ interface Constants {
     int MESSAGE_TOAST = 12;
     int MESSAGE_CONNECTED = 13;
     int MESSAGE_CONNECT_ERR = 14;
+    int MESSAGE_DISCONNECTED = 15;
 
     // For activity request code
     int REQUEST_ENABLE_BT = 20;
