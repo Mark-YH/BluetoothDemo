@@ -24,7 +24,6 @@ import android.widget.Toast;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 /**
@@ -249,9 +248,9 @@ public class MainActivity extends AppCompatActivity {
      * Receive message that returned from BluetoothService object
      */
     private final Handler mBtHandler = new Handler() {
-        private long lightRemindTime;
         private long currentTime;
-        private long moveTime;
+        private long lightRemindTime; // 昏暗提醒時間
+        private long moveTime; // 模擬油門前進時間
         private static final int REMIND_DELAY = 5000; // millisecond
 
         @Override
@@ -356,7 +355,7 @@ public class MainActivity extends AppCompatActivity {
                     ArrayList<Obstacle> obstacles = (ArrayList<Obstacle>) msg.obj;
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < obstacles.size(); i++) {
-                        tvOutput.append("第 " + (i + 1) + "筆: ");
+                        tvOutput.append("第 " + (i + 1) + " 筆: ");
                         tvOutput.append(obstacles.get(i).getSpeaking());
                         sb.append(obstacles.get(i).getSpeaking());
                         Log.d(TAG, obstacles.get(i).getDetail());
@@ -375,26 +374,26 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private Handler mGsHandler = new Handler() {
+        private long currentTime;
+        private long remindTime;
+        private static final int REMIND_DELAY = 500; // millisecond
+
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case Constants.SENSOR_GRAVITY_RESULT:
-                    String result;
-                    float gravity[] = (float[]) msg.obj;
-                    DecimalFormat df = new DecimalFormat("#.###");
-                    df.setPositivePrefix(" ");
-                    result = "x= " + df.format(gravity[0]) + "\n" +
-                            "y= " + df.format(gravity[1]) + "\n" +
-                            "z= " + df.format(gravity[2]);
+                    String speaking = "偵測到車子倒地\n";
+                    int vt = msg.arg1;
+                    String result = "重力感測值：" + vt;
                     tvGSensor.setText(result);
 
-                    // for testing
-//                    result = "--- --- --- Gravity sensor --- --- ---\n" +
-//                            "x= " + gravity[0] + "\n" +
-//                            "y= " + gravity[1] + "\n" +
-//                            "z= " + gravity[2] + "\n";
-//                    tvOutput.append(result);
-//                    autoScrollDown();
+                    currentTime = System.currentTimeMillis();
+
+                    if (vt > 200 && (currentTime - remindTime > REMIND_DELAY)) {
+                        mTtsService.speak(speaking);
+                        tvOutput.append(speaking);
+                        remindTime = currentTime;
+                    }
                     break;
             }
         }

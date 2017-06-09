@@ -41,7 +41,7 @@ class GravitySensorService {
         @Override
         public void onSensorChanged(SensorEvent event) {
             float gravity[] = new float[3];
-            double vx = 0, vy = 0, vz = 0, dt = 0.2;
+            double vx = 0, vy = 0, vz = 0;
             int vt;
 
             gravity[0] = event.values[0];
@@ -49,9 +49,9 @@ class GravitySensorService {
             gravity[2] = event.values[2];
             Log.d(TAG, "x: " + gravity[0] + "\ty: " + gravity[1] + "\tz: " + gravity[2]);
 
-            vx += gravity[0] * dt;
-            vy += gravity[1] * dt;
-            vz += gravity[2] * dt;
+            vx += gravity[0] * 10;
+            vy += gravity[1] * 10;
+            vz += gravity[2] * 10;
 
             vt = (int) Math.sqrt(vx * vx + vy * vy + vz * vz);
             Log.d(TAG, "Vt = " + vt);
