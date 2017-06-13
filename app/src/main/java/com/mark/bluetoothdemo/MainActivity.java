@@ -1,6 +1,7 @@
 package com.mark.bluetoothdemo;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +14,9 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.PhoneStateListener;
+import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -22,6 +26,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.internal.telephony.ITelephony;
+
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -41,7 +48,7 @@ import java.util.ArrayList;
  */
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity"; // for debug
+    private final static String TAG = "MainActivity"; // for debug
     private static boolean isLightOff = true;
     private TextView tvLightSensor, tvInput, tvOutput, tvGSensor;
     private Button btnConnect, btnDisconnect;
@@ -52,6 +59,15 @@ public class MainActivity extends AppCompatActivity {
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
     private GravitySensorService mGravitySensorService;
+    private TelephonyManager telephonyManager;
+    private final static String[] permissions = {
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,10 +87,74 @@ public class MainActivity extends AppCompatActivity {
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
         mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
+        telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 
         IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_BUTTON);//"android.intent.action.MEDIA_BUTTON"
         MediaButtonIntentReceiver r = new MediaButtonIntentReceiver();
         registerReceiver(r, filter);
+
+        checkPermission(MainActivity.this);
+        startPhoneListener();
+    }
+
+    private void startPhoneListener() {
+        if (telephonyManager == null) {
+            telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        }
+        if (checkPermission(MainActivity.this)) {
+            MyPhoneStateListener phoneStateListener = new MyPhoneStateListener();
+            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        }
+    }
+
+
+    private class MyPhoneStateListener extends PhoneStateListener {
+        @Override
+        public void onCallStateChanged(int state, String incomingNumber) {
+            switch (state) {
+                case TelephonyManager.CALL_STATE_RINGING:
+                    try {
+                        Method m1 = telephonyManager.getClass().getDeclaredMethod("getITelephony");
+                        if (m1 != null) {
+                            m1.setAccessible(true);
+                            ITelephony iTelephony = (ITelephony) m1.invoke(telephonyManager);
+
+                            if (iTelephony != null) {
+                                // silenceRinger method got a exception, java.lang.reflect.InvocationTargetException
+                                // Caused by: java.lang.SecurityException: Neither user 10166 nor current process has android.permission.MODIFY_PHONE_STATE.
+                                // I think it might need rooted device to do this method.
+//                                Method m2 = iTelephony.getClass().getDeclaredMethod("silenceRinger");
+//
+//                                if (m2 != null) {
+//                                    m2.invoke(iTelephony);
+//                                }
+
+                                Method m3 = iTelephony.getClass().getDeclaredMethod("endCall");
+
+                                if (m3 != null) {
+                                    // this code might throw a exception,
+                                    // but just disable *Phone permission* in Settings and enable it again,
+                                    // then it could works.
+                                    m3.invoke(iTelephony);
+
+//                                    TODO: send sms text for demo
+                                    SmsManager sms = SmsManager.getDefault();
+                                    sms.sendTextMessage(incomingNumber, null, "騎車中，稍後回覆", null, null);
+                                    tvOutput.append("收到 " + incomingNumber + " 來電，已主動掛斷且已傳送罐頭簡訊\n");
+                                }
+                            }
+                        }
+                    } catch (IllegalArgumentException e) {
+                        Log.e(TAG, "--- SMS IllegalArgumentException ---", e);
+                        tvOutput.append("SMS service error:" + e + "\n");
+                    } catch (Exception e) {
+                        Log.e(TAG, "--- Handle phone call exception ---", e);
+                        tvOutput.append("自動轉接來電功能發生錯誤:" + e + "\n");
+                    }
+                    break;
+            }
+            super.onCallStateChanged(state, incomingNumber);
+        }
     }
 
     public class MediaButtonIntentReceiver extends BroadcastReceiver {
@@ -95,12 +175,11 @@ public class MainActivity extends AppCompatActivity {
             }
             int action = event.getAction();
             if (action == KeyEvent.ACTION_DOWN) {
-                if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
-                    mSttService.start();
-                }
+                startSpeechToText();
             }
             abortBroadcast();
         }
+
     }
 
     @Override
@@ -111,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
         if (mGravitySensorService != null) {
             mGravitySensorService.cancel();
         }
+        telephonyManager = null; // TODO: override onResume() and stop() and so on... to control telephonyManager
         super.onDestroy();
     }
 
@@ -135,10 +215,14 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(scanIntent, Constants.REQUEST_SELECT_DEVICE);
     }
 
+    private void startSpeechToText() {
+        if (checkPermission(MainActivity.this)) {
+            mSttService.start();
+        }
+    }
+
     private void askLocation() {
-        if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
-                && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
-                Manifest.permission.ACCESS_COARSE_LOCATION)) {
+        if (checkPermission(MainActivity.this)) {
             String speaking = "目前位置是：" + mLocationService.getAddress() + "\n";
             mTtsService.speak(speaking);
             tvOutput.append(speaking);
@@ -146,9 +230,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void askObstacle() {
-        if (checkPermission(Constants.REQUEST_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION)
-                && checkPermission(Constants.REQUEST_LOCATION_PERMISSION,
-                Manifest.permission.ACCESS_COARSE_LOCATION)) {
+        if (checkPermission(MainActivity.this)) {
             mOpenDataService.start();
         }
     }
@@ -183,9 +265,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSTT(View v) {
-        if (checkPermission(Constants.STT_REQUEST_PERMISSION, Manifest.permission.RECORD_AUDIO)) {
-            mSttService.start();
-        }
+        startSpeechToText();
     }
 
     public void onClickLightSwitch(View v) {
@@ -193,23 +273,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * @param requestCode Constant to verify on result (onRequestPermissionsResult())
-     * @param permission  Manifest.permission.WHAT_PERMISSION_YOU_NEED
+     * @param context for ActivityCompat.checkSelfPermission(Context context, String permission)
      * @return true if application has the permission above
      */
-    private boolean checkPermission(int requestCode, String permission) {
-        if (ActivityCompat.checkSelfPermission(MainActivity.this, permission)
-                != PackageManager.PERMISSION_GRANTED) {
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            // Check Permissions Now
-            Log.d(TAG, "request this permission: " + permission);
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{permission}, requestCode);
+    private static boolean checkPermission(Context context) {
+        ArrayList<String> lostPermissions = new ArrayList<>();
+        for (String permission : permissions) {
+            if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                lostPermissions.add(permission);
+            }
+        }
+        if (lostPermissions.size() > 0) {
+            Log.d(TAG, "Lost permissions: " + lostPermissions + " , request it now.");
+            ActivityCompat.requestPermissions((Activity) context,
+                    lostPermissions.toArray(new String[0]), // why array size is 0? see here: https://shipilev.net/blog/2016/arrays-wisdom-ancients/
+                    Constants.REQUEST_PERMISSIONS);
             return false;
         }
         return true;
@@ -217,30 +295,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case Constants.REQUEST_LOCATION_PERMISSION:
-                if (grantResults.length == 1
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // We can now safely use the API we requested access to
-                    mLocationService.buildGoogleApiClient();
-                    Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
+        if (requestCode == Constants.REQUEST_PERMISSIONS) {
+            for (int i = 0; i < grantResults.length; i++) {
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "Got a permission: " + permissions[i]);
                 } else {
-                    mTtsService.speak("請同意應用程式存取位置資訊的權限");
-                    Log.d(TAG, "Permission was denied or request was cancelled");
-                    // Permission was denied or request was cancelled
+                    Log.e(TAG, "Permission '" + permissions[i] + "' was denied or request was cancelled");
                 }
-                break;
-            case Constants.STT_REQUEST_PERMISSION:
-                if (grantResults.length == 1
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // We can now safely use the API we requested access to
-                    mSttService.initialize();
-                    Log.d(TAG, "(grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED)");
-                } else {
-                    mTtsService.speak("請同意應用程式存取麥克風的權限");
-                    Log.d(TAG, "Permission was denied or request was cancelled");
-                }
-                break;
+            }
         }
     }
 
@@ -279,6 +341,11 @@ public class MainActivity extends AppCompatActivity {
                             moveTime = 0;
                         }
                     }
+                    if (telephonyManager == null) {
+                        sb.append("來電不自動轉接");
+                    } else {
+                        sb.append("所有來電自動轉接");
+                    }
                     tvLightSensor.setText(sb.toString());
 
                     if (lightVal > 500 && isLightOff) {
@@ -304,6 +371,7 @@ public class MainActivity extends AppCompatActivity {
                     pbLoading.setVisibility(View.GONE);
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_connected)
                             , Toast.LENGTH_SHORT).show();
+                    startPhoneListener();
                     break;
 
                 case Constants.MESSAGE_CONNECT_ERR:
@@ -312,17 +380,21 @@ public class MainActivity extends AppCompatActivity {
                     pbLoading.setVisibility(View.GONE);
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_connect_failed)
                             , Toast.LENGTH_SHORT).show();
+                    telephonyManager = null;
                     break;
 
                 case Constants.MESSAGE_DISCONNECTED:
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_disconnect)
                             , Toast.LENGTH_SHORT).show();
+                    telephonyManager = null;
                     break;
             } // end switch
         }// end handleMessage(msg)
     };
 
     private Handler mSttHandler = new Handler() {
+        private final String[] fakeObstacle = {"在中山路110號有事故\n", "在民族路155號有障礙\n"};
+
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -342,9 +414,11 @@ public class MainActivity extends AppCompatActivity {
                 case Constants.STT_RESULT_OBSTACLE:
                     if (msg.arg1 == 0) {
                         // demo時模擬狀況
-                        tvOutput.append("第 1 筆: 在中山路110號有事故\n");
-                        tvOutput.append("第 2 筆: 在民族路155號有障礙\n");
-                        mTtsService.speak("在中山路110號有事故\n在民族路155號有障礙\n");
+                        for (int i = 0; i < fakeObstacle.length; i++) {
+                            tvOutput.append("第 " + (i + 1) + " 筆: ");
+                            tvOutput.append(fakeObstacle[i]);
+                            mTtsService.speak(fakeObstacle[i]);
+                        }
 
                         // 正常情況
 //                        tvOutput.append("無事故發生\n");
@@ -353,14 +427,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                     @SuppressWarnings("unchecked")
                     ArrayList<Obstacle> obstacles = (ArrayList<Obstacle>) msg.obj;
-                    StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < obstacles.size(); i++) {
                         tvOutput.append("第 " + (i + 1) + " 筆: ");
                         tvOutput.append(obstacles.get(i).getSpeaking());
-                        sb.append(obstacles.get(i).getSpeaking());
+                        mTtsService.speak(obstacles.get(i).getSpeaking());
                         Log.d(TAG, obstacles.get(i).getDetail());
                     }
-                    mTtsService.speak(sb.toString());
                     break;
                 case Constants.LOCATION_SERVICE_ERROR:
                     mTtsService.speak("請開啟定位服務後重試"); // 需開啟定位服務： 設定 -> 位置
