@@ -87,7 +87,7 @@ class PhoneStateService {
                                     // then it could works.
                                     m3.invoke(iTelephony);
                                     SmsManager sms = SmsManager.getDefault();
-//                                    sms.sendTextMessage(incomingNumber, null, "騎車中，稍後回覆", null, null);
+                                    sms.sendTextMessage(incomingNumber, null, "騎車中，稍後回覆", null, null);
                                     mHandler.obtainMessage(Constants.PHONE_SERVICE_RESULT,
                                             -1, -1, incomingNumber).sendToTarget();
                                 }
