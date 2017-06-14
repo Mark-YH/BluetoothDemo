@@ -14,9 +14,6 @@ import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.telephony.PhoneStateListener;
-import android.telephony.SmsManager;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -26,9 +23,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.internal.telephony.ITelephony;
-
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -59,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
     private GravitySensorService mGravitySensorService;
-    private TelephonyManager telephonyManager;
+    private PhoneStateService mPhoneStateService;
+
     private final static String[] permissions = {
             Manifest.permission.SEND_SMS,
             Manifest.permission.CALL_PHONE,
@@ -82,79 +77,17 @@ public class MainActivity extends AppCompatActivity {
         tvLightSensor = (TextView) findViewById(R.id.tvLightSensor);
         tvGSensor = (TextView) findViewById(R.id.tvGravitySensor);
 
+        checkPermission(MainActivity.this);
         mTtsService = new MyTextToSpeechService(MainActivity.this);
         mLocationService = new LocationService(MainActivity.this);
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);
         mGravitySensorService = new GravitySensorService((SensorManager) getSystemService(SENSOR_SERVICE), mGsHandler);
-        telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        mPhoneStateService = new PhoneStateService(MainActivity.this, mPhoneHandler);
 
         IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_BUTTON);//"android.intent.action.MEDIA_BUTTON"
         MediaButtonIntentReceiver r = new MediaButtonIntentReceiver();
         registerReceiver(r, filter);
-
-        checkPermission(MainActivity.this);
-        startPhoneListener();
-    }
-
-    private void startPhoneListener() {
-        if (telephonyManager == null) {
-            telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        }
-        if (checkPermission(MainActivity.this)) {
-            MyPhoneStateListener phoneStateListener = new MyPhoneStateListener();
-            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
-        }
-    }
-
-
-    private class MyPhoneStateListener extends PhoneStateListener {
-        @Override
-        public void onCallStateChanged(int state, String incomingNumber) {
-            switch (state) {
-                case TelephonyManager.CALL_STATE_RINGING:
-                    try {
-                        Method m1 = telephonyManager.getClass().getDeclaredMethod("getITelephony");
-                        if (m1 != null) {
-                            m1.setAccessible(true);
-                            ITelephony iTelephony = (ITelephony) m1.invoke(telephonyManager);
-
-                            if (iTelephony != null) {
-                                // silenceRinger method got a exception, java.lang.reflect.InvocationTargetException
-                                // Caused by: java.lang.SecurityException: Neither user 10166 nor current process has android.permission.MODIFY_PHONE_STATE.
-                                // I think it might need rooted device to do this method.
-//                                Method m2 = iTelephony.getClass().getDeclaredMethod("silenceRinger");
-//
-//                                if (m2 != null) {
-//                                    m2.invoke(iTelephony);
-//                                }
-
-                                Method m3 = iTelephony.getClass().getDeclaredMethod("endCall");
-
-                                if (m3 != null) {
-                                    // this code might throw a exception,
-                                    // but just disable *Phone permission* in Settings and enable it again,
-                                    // then it could works.
-                                    m3.invoke(iTelephony);
-
-//                                    TODO: send sms text for demo
-                                    SmsManager sms = SmsManager.getDefault();
-                                    sms.sendTextMessage(incomingNumber, null, "騎車中，稍後回覆", null, null);
-                                    tvOutput.append("收到 " + incomingNumber + " 來電，已主動掛斷且已傳送罐頭簡訊\n");
-                                }
-                            }
-                        }
-                    } catch (IllegalArgumentException e) {
-                        Log.e(TAG, "--- SMS IllegalArgumentException ---", e);
-                        tvOutput.append("SMS service error:" + e + "\n");
-                    } catch (Exception e) {
-                        Log.e(TAG, "--- Handle phone call exception ---", e);
-                        tvOutput.append("自動轉接來電功能發生錯誤:" + e + "\n");
-                    }
-                    break;
-            }
-            super.onCallStateChanged(state, incomingNumber);
-        }
     }
 
     public class MediaButtonIntentReceiver extends BroadcastReceiver {
@@ -190,7 +123,6 @@ public class MainActivity extends AppCompatActivity {
         if (mGravitySensorService != null) {
             mGravitySensorService.cancel();
         }
-        telephonyManager = null; // TODO: override onResume() and stop() and so on... to control telephonyManager
         super.onDestroy();
     }
 
@@ -341,10 +273,10 @@ public class MainActivity extends AppCompatActivity {
                             moveTime = 0;
                         }
                     }
-                    if (telephonyManager == null) {
-                        sb.append("來電不自動轉接");
+                    if (mPhoneStateService.isListening()) {
+                        sb.append("來電自動轉接中");
                     } else {
-                        sb.append("所有來電自動轉接");
+                        sb.append("未監聽來電");
                     }
                     tvLightSensor.setText(sb.toString());
 
@@ -371,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                     pbLoading.setVisibility(View.GONE);
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_connected)
                             , Toast.LENGTH_SHORT).show();
-                    startPhoneListener();
+                    mPhoneStateService.start();
                     break;
 
                 case Constants.MESSAGE_CONNECT_ERR:
@@ -380,13 +312,12 @@ public class MainActivity extends AppCompatActivity {
                     pbLoading.setVisibility(View.GONE);
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_connect_failed)
                             , Toast.LENGTH_SHORT).show();
-                    telephonyManager = null;
                     break;
 
                 case Constants.MESSAGE_DISCONNECTED:
                     Toast.makeText(context, getResources().getString(R.string.bluetooth_disconnect)
                             , Toast.LENGTH_SHORT).show();
-                    telephonyManager = null;
+                    mPhoneStateService.stop();
                     break;
             } // end switch
         }// end handleMessage(msg)
@@ -465,6 +396,26 @@ public class MainActivity extends AppCompatActivity {
                         mTtsService.speak(speaking);
                         tvOutput.append(speaking);
                         remindTime = currentTime;
+                    }
+                    break;
+            }
+        }
+    };
+
+    private Handler mPhoneHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Constants.PHONE_SERVICE_RESULT:
+                    String incomingNumber = (String) msg.obj;
+                    tvOutput.append("來電號碼: " + incomingNumber + " 已自動轉接並已發送簡訊\n");
+                    break;
+                case Constants.PHONE_SERVICE_ERROR:
+                    Exception e = (Exception) msg.obj;
+                    if (msg.arg1 > 0) {
+                        tvOutput.append("SMS IllegalArgumentException" + e.getMessage() + "\n");
+                    } else {
+                        tvOutput.append("Handle phone call exception" + e.getMessage() + "\n");
                     }
                     break;
             }

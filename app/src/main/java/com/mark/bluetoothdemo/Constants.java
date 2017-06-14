@@ -36,4 +36,8 @@ interface Constants {
 
     // For request permissions we need
     int REQUEST_PERMISSIONS = 60;
+
+    // For PhoneStateListener service
+    int PHONE_SERVICE_RESULT = 70;
+    int PHONE_SERVICE_ERROR = 71;
 }
