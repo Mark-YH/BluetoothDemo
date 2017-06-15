@@ -1,4 +1,4 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.telephone;
 
 import android.content.Context;
 import android.os.Handler;
@@ -8,6 +8,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.android.internal.telephony.ITelephony;
+import com.mark.bluetoothdemo.Constants;
 
 import java.lang.reflect.Method;
 
@@ -17,27 +18,27 @@ import java.lang.reflect.Method;
  * @author Mark Hsu
  */
 
-class PhoneStateService {
+public class PhoneStateService {
     private final static String TAG = "PhoneStateService";
     private final TelephonyManager telephonyManager;
     private final MyPhoneStateListener phoneStateListener;
     private static boolean isListening = false;
     private Handler mHandler;
 
-    PhoneStateService(Context context, Handler handler) {
+    public PhoneStateService(Context context, Handler handler) {
         mHandler = handler;
         telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         phoneStateListener = new MyPhoneStateListener();
         Log.i(TAG, "Initialized PhoneStateService");
     }
 
-    void start() {
+    public void start() {
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
         isListening = true;
         Log.i(TAG, "Started listening phone state");
     }
 
-    void stop() {
+    public void stop() {
         telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
         isListening = false;
         Log.i(TAG, "Stopped listening phone state");
@@ -46,7 +47,7 @@ class PhoneStateService {
     /**
      * @return true if listening phone state
      */
-    boolean isListening() {
+    public boolean isListening() {
         return isListening;
     }
 

@@ -1,7 +1,10 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.opendata;
 
 import android.os.Handler;
 import android.util.Log;
+
+import com.mark.bluetoothdemo.Constants;
+import com.mark.bluetoothdemo.utils.location.LocationService;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,7 +28,7 @@ import java.util.Locale;
  * @author Mark Hsu
  */
 
-class OpenDataService {
+public class OpenDataService {
     private static final String TAG = "OpenDataService";
     private static final int ALLOWED_LIMIT = 24 * 60 * 60 * 1000; // 允許回報的時間(millisecond)
     private static final int LIMIT_DISTANCE = 500_000; // 允許回報的距離(meter)
@@ -33,13 +36,13 @@ class OpenDataService {
     private ArrayList<Obstacle> obstacles;
     private Handler mHandler;
 
-    OpenDataService(LocationService locationService, Handler handler) {
+    public OpenDataService(LocationService locationService, Handler handler) {
         mHandler = handler;
         mLocationService = locationService;
         mHandler.sendEmptyMessage(Constants.LOCATION_SERVICE_ERROR);
     }
 
-    void start() {
+    public void start() {
         obstacles = new ArrayList<>();
         new RequestThread().start();
     }

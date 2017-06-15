@@ -1,4 +1,4 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.sensor;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -7,30 +7,31 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.util.Log;
 
+import com.mark.bluetoothdemo.Constants;
+
 /**
  * Created on 16/05/2017
  *
  * @author Mark Hsu
  */
 
-class GravitySensorService {
+public class GravitySensorService {
     private static final String TAG = "GravitySensorService";
     private Handler mHandler;
     private SensorManager mSensorManager;
-    private Sensor mSensor;
     private GravitySensorListener mSensorListener;
 
-    GravitySensorService(SensorManager sensorManager, Handler handler) {
+    public GravitySensorService(SensorManager sensorManager, Handler handler) {
         Log.d(TAG, "Start sensor service.");
         mHandler = handler;
         mSensorManager = sensorManager;
 
-        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        Sensor mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         mSensorListener = new GravitySensorListener();
         mSensorManager.registerListener(mSensorListener, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    void cancel() {
+    public void cancel() {
         if (mSensorManager != null) {
             mSensorManager.unregisterListener(mSensorListener);
         }

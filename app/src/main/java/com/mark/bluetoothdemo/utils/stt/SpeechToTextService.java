@@ -1,4 +1,4 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.stt;
 
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +8,9 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
+
+import com.mark.bluetoothdemo.Constants;
+import com.mark.bluetoothdemo.R;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -19,24 +22,24 @@ import java.util.Locale;
  * @author Mark Hsu
  */
 
-class SpeechToTextService {
+public class SpeechToTextService {
     private static final String TAG = "SpeechToTextService";
     private SpeechRecognizer speechRecognizer;
     private Handler mHandler;
     private Context mContext;
 
-    SpeechToTextService(Context context, Handler handler) {
+    public SpeechToTextService(Context context, Handler handler) {
         mContext = context;
         mHandler = handler;
         initialize();
     }
 
-    void initialize() {
+    private void initialize() {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(mContext);
         speechRecognizer.setRecognitionListener(new STTServiceListener());
     }
 
-    void start() {
+    public void start() {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);

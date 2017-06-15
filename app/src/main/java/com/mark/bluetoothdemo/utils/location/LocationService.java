@@ -1,4 +1,4 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.location;
 
 import android.content.Context;
 import android.location.Address;
@@ -22,13 +22,13 @@ import java.util.Locale;
  * @author Mark Hsu
  */
 
-class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
     private static final String TAG = "LocationService";
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
     private Context mContext;
 
-    LocationService(Context context) {
+    public LocationService(Context context) {
         this.mContext = context;
         buildGoogleApiClient();
     }
@@ -73,7 +73,7 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
         Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + connectionResult.getErrorCode());
     }
 
-    String getAddress() {
+    public String getAddress() {
         if (mLastLocation != null) {
             Geocoder gc = new Geocoder(mContext, Locale.TRADITIONAL_CHINESE);
             //自經緯度取得地址
@@ -94,7 +94,7 @@ class LocationService implements GoogleApiClient.ConnectionCallbacks, GoogleApiC
         return "發生錯誤，請確認是否已開啟權限存取位置資訊"; // 說明確認權限後重試
     }
 
-    Location getLocation() {
+    public Location getLocation() {
         return mLastLocation;
     }
 }

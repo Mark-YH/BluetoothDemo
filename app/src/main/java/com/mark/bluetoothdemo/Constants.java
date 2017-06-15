@@ -8,7 +8,7 @@ package com.mark.bluetoothdemo;
  * @author Mark Hsu
  */
 
-interface Constants {
+public interface Constants {
     // For transmitting messages between the service and the UI.
     int MESSAGE_READ = 10;
     int MESSAGE_WRITE = 11;

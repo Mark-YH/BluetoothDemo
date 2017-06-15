@@ -1,14 +1,14 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.bluetooth;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+
+import com.mark.bluetoothdemo.Constants;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +24,7 @@ import java.util.UUID;
  * @author Mark Hsu
  */
 
-class BluetoothService {
+public class BluetoothService {
     private static final String TAG = "BluetoothService"; // for debug
     private Handler mHandler; // handler that gets info from Bluetooth service
     private BluetoothAdapter mBluetoothAdapter;
@@ -32,7 +32,7 @@ class BluetoothService {
     private ConnectedThread connectedThread;
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb"); // UUID for Arduino serial port
 
-    BluetoothService(Handler handler, String address) {
+    public BluetoothService(Handler handler, String address) {
         mHandler = handler;
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -44,7 +44,7 @@ class BluetoothService {
         connectThread.start();
     }
 
-    void disconnect() {
+    public void disconnect() {
         if (connectedThread != null) {
             connectedThread.cancel();
             connectedThread = null;
@@ -56,7 +56,7 @@ class BluetoothService {
         mHandler.sendEmptyMessage(Constants.MESSAGE_DISCONNECTED);
     }
 
-    void sendMessage(String msg) {
+    public void sendMessage(String msg) {
         if (connectedThread != null) {
             connectedThread.write(msg.getBytes());
         }
@@ -103,6 +103,7 @@ class BluetoothService {
                     }
                     // 已確定 input stream 內有完整封包長度的封包, 可忽略 InputStream.read(byte[]) 的回傳值
                     // 但是還不確定這個封包格式是否符合自訂的標準封包
+                    //noinspection ResultOfMethodCallIgnored
                     mmInStream.read(mmBuffer);
 
                     // 自訂標準為 前 4 bytes = 'H', 'E', 'A', 'D' 作為 Header 來辨識
@@ -116,6 +117,7 @@ class BluetoothService {
                         readMsg.sendToTarget();
                     } else {
                         // 封包格式錯誤, 使用 InputStream.read() 來丟棄(drop) 1 byte
+                        //noinspection ResultOfMethodCallIgnored
                         mmInStream.read();
                         Log.e(TAG, "PACKET IS WRONG!!!!!");
                     }

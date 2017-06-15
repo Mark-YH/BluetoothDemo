@@ -23,6 +23,15 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.mark.bluetoothdemo.utils.bluetooth.BluetoothService;
+import com.mark.bluetoothdemo.utils.location.LocationService;
+import com.mark.bluetoothdemo.utils.opendata.Obstacle;
+import com.mark.bluetoothdemo.utils.opendata.OpenDataService;
+import com.mark.bluetoothdemo.utils.sensor.GravitySensorService;
+import com.mark.bluetoothdemo.utils.stt.SpeechToTextService;
+import com.mark.bluetoothdemo.utils.telephone.PhoneStateService;
+import com.mark.bluetoothdemo.utils.tts.TextToSpeechService;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -48,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnConnect, btnDisconnect;
     private ProgressBar pbLoading;
     private BluetoothService mBtService;
-    private MyTextToSpeechService mTtsService;
+    private TextToSpeechService mTtsService;
     private LocationService mLocationService;
     private SpeechToTextService mSttService;
     private OpenDataService mOpenDataService;
@@ -78,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         tvGSensor = (TextView) findViewById(R.id.tvGravitySensor);
 
         checkPermission(MainActivity.this);
-        mTtsService = new MyTextToSpeechService(MainActivity.this);
+        mTtsService = new TextToSpeechService(MainActivity.this);
         mLocationService = new LocationService(MainActivity.this);
         mSttService = new SpeechToTextService(MainActivity.this, mSttHandler);
         mOpenDataService = new OpenDataService(mLocationService, mSttHandler);

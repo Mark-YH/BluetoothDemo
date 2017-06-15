@@ -1,10 +1,9 @@
-package com.mark.bluetoothdemo;
+package com.mark.bluetoothdemo.utils.tts;
 
 import android.content.Context;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.Locale;
 
 /**
@@ -13,11 +12,11 @@ import java.util.Locale;
  * @author Mark Hsu
  */
 
-class MyTextToSpeechService {
-    private final static String TAG = "MyTextToSpeechService";
+public class TextToSpeechService {
+    private final static String TAG = "TextToSpeechService";
     private TextToSpeech mTts;
 
-    MyTextToSpeechService(Context context) {
+    public TextToSpeechService(Context context) {
         TextToSpeech.OnInitListener mInitListener = new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
@@ -48,13 +47,14 @@ class MyTextToSpeechService {
         mTts = new TextToSpeech(context, mInitListener);
     }
 
-    void speak(String content) {
+    public void speak(String content) {
         // min API Level 15 只能使用此 method >>> speak(String text, int queueMode, HashMap<String, String> params)
+        //noinspection deprecation
         mTts.speak(content, TextToSpeech.QUEUE_ADD,  // Drop all pending entries in the playback queue.
                 null);
     }
 
-    void destroy() {
+    public void destroy() {
         if (mTts != null) {
             mTts.stop();
             mTts.shutdown();
